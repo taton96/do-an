@@ -12,7 +12,8 @@ export default function Home() {
           PHẦN 1: HERO - KHU VỰC GIỚI THIỆU CHÍNH
           ===================================================== */}
       <section className="hero">
-        <div>
+        <div className="hero-content">
+          <div className="hero-copy">
 
           {/* Nhãn nhỏ phía trên tiêu đề */}
           <span className="badge">
@@ -36,7 +37,19 @@ export default function Home() {
           <Link to="/booking" className="btn">
             Đặt lịch ngay
           </Link>
+          </div>
 
+          <div className="hero-visual" aria-label="Ảnh minh họa dịch vụ">
+            <div className="hero-image-main">
+              <img src="/images/services/massage.svg" alt="Dịch vụ massage thư giãn" />
+            </div>
+            <div className="hero-image-small hero-image-one">
+              <img src="/images/services/cat-toc.svg" alt="Dịch vụ cắt tóc" />
+            </div>
+            <div className="hero-image-small hero-image-two">
+              <img src="/images/services/cham-soc-da.svg" alt="Dịch vụ chăm sóc da" />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -87,9 +100,13 @@ export default function Home() {
               key={service.id}
             >
 
-              {/* Icon của dịch vụ */}
-              <div className="icon">
-                ✂
+              {/* Ảnh minh họa của dịch vụ */}
+              <div className="service-image">
+                <img
+                  src={service.image || "/images/services/cat-toc.svg"}
+                  alt={service.name}
+                  onError={(e) => { e.currentTarget.src = "/images/services/cat-toc.svg"; }}
+                />
               </div>
 
 

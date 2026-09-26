@@ -22,7 +22,7 @@ export default function App(){
    <Route path="/my-bookings" element={<Protected roles={["customer"]}><MyBookings/></Protected>}/>
    <Route path="/profile" element={<Protected><Profile/></Protected>}/>
    <Route path="/login" element={<Login/>}/><Route path="/register" element={<Register/>}/>
-   <Route path="/staff" element={<Protected roles={["staff"]}><StaffDashboard/></Protected>}/>
+   <Route path="/staff" element={<Protected roles={["employee"]}><StaffDashboard/></Protected>}/>
    <Route path="/admin" element={<Protected roles={["admin"]}><AdminDashboard/></Protected>}/>
    <Route path="/admin/services" element={<Protected roles={["admin"]}><AdminServices/></Protected>}/>
    <Route path="/admin/staff" element={<Protected roles={["admin"]}><AdminStaff/></Protected>}/>

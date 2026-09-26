@@ -1,30 +1,28 @@
-# BOOKING SYSTEM
-Hệ thống đặt lịch dịch vụ cho cửa hàng nhỏ.
+# Booking System - Multi Service + Employee Scheduling
 
-## Công nghệ
-- Frontend: ReactJS + Vite
-- Backend: Node.js + Express
-- Database: MongoDB
-- Authentication: JWT + bcrypt
+Luồng hoàn chỉnh:
+1. Khách đăng nhập/đăng ký.
+2. Chọn một hoặc nhiều dịch vụ.
+3. Chọn nhân viên.
+4. Chọn ngày đã được xếp ca.
+5. Chọn giờ trống trong ca.
+6. Đặt lịch.
+7. Lịch hẹn lưu MongoDB.
+8. Admin có thể xếp ca theo ngày cho nhân viên và gán nhân viên cho lịch chưa xếp.
+9. Nhân viên đăng nhập sẽ thấy các lịch được phân công từ MongoDB.
 
 ## Chạy backend
-```powershell
+```bash
 cd backend
 npm install
-copy .env.example .env
 npm start
 ```
-Backend: http://localhost:3000
 
 ## Chạy frontend
-Mở terminal khác:
-```powershell
+```bash
 cd frontend
 npm install
 npm run dev
 ```
-Frontend: http://localhost:5173
 
-## Admin demo
-Email: admin@gmail.com
-Password: 123456
+MongoDB mặc định: `mongodb://127.0.0.1:27017/booking_system`.

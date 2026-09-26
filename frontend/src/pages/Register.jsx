@@ -25,14 +25,14 @@ export default function Register() {
 
 
   // Xử lý đăng ký
-  function submit(event) {
+  async function submit(event) {
 
     event.preventDefault();
 
     try {
 
       // Gọi hàm đăng ký
-      register(form);
+      await register(form);
 
       // Đăng ký thành công → về trang chủ
       navigate("/");

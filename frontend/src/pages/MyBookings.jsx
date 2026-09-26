@@ -1,180 +1,131 @@
-import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
-import { getData, saveData } from "../data";
+import { useEffect, useState } from "react";
 
+const API_URL = "http://localhost:3000/api";
 
-// Tên hiển thị của trạng thái
 const labels = {
   pending: "Chờ xác nhận",
   confirmed: "Đã xác nhận",
   completed: "Hoàn thành",
-  cancelled: "Đã hủy"
+  cancelled: "Đã hủy",
 };
 
-
 export default function MyBookings() {
+  const [list, setList] = useState([]);
+  const [message, setMessage] = useState("");
 
-  const { user } = useAuth();
+  async function loadBookings() {
+    try {
+      const response = await fetch(`${API_URL}/appointments`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
 
+      const data = await response.json();
 
-  // Lấy danh sách lịch đặt của khách hàng hiện tại
-  const [list, setList] = useState(() => {
-
-    const bookings = getData("bookings", []);
-
-    return bookings.filter(
-      (booking) => booking.customerId === user.id
-    );
-  });
-
-
-  // Hủy lịch đặt
-  function cancel(id) {
-
-    const bookings = getData("bookings", []);
-
-
-    const updatedBookings = bookings.map(
-      (booking) => {
-
-        if (booking.id === id) {
-          return {
-            ...booking,
-            status: "cancelled"
-          };
-        }
-
-        return booking;
+      if (!response.ok) {
+        throw new Error(data.message || "Không thể tải lịch đặt");
       }
-    );
 
-
-    // Lưu dữ liệu mới
-    saveData("bookings", updatedBookings);
-
-
-    // Cập nhật lại danh sách trên màn hình
-    setList(
-      updatedBookings.filter(
-        (booking) => booking.customerId === user.id
-      )
-    );
+      setList(data);
+    } catch (error) {
+      setMessage(error.message);
+    }
   }
 
+  useEffect(() => {
+    loadBookings();
+  }, []);
+
+  async function cancel(id) {
+    if (!window.confirm("Bạn có chắc muốn hủy lịch này?")) return;
+
+    try {
+      const response = await fetch(`${API_URL}/appointments/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Không thể hủy lịch");
+      }
+
+      loadBookings();
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
 
   return (
     <main className="container page">
+      <h1>Lịch đặt của tôi</h1>
 
-      {/* Tiêu đề */}
-      <h1>
-        Lịch đặt của tôi
-      </h1>
+      {message && <div className="error">{message}</div>}
 
-
-      {/* Không có lịch đặt */}
       {!list.length ? (
-
-        <div className="empty">
-          Bạn chưa có lịch đặt nào.
-        </div>
-
+        <div className="empty">Bạn chưa có lịch đặt nào.</div>
       ) : (
-
-        /* Có lịch đặt */
         <div className="tablewrap">
-
           <table>
-
-            {/* Tiêu đề bảng */}
             <thead>
-
               <tr>
                 <th>Dịch vụ</th>
                 <th>Nhân viên</th>
                 <th>Ngày</th>
                 <th>Giờ</th>
-                <th>Trạng thái</th>
+                <th>Trạng thái</th>\n                <th>Thanh toán</th>
                 <th></th>
               </tr>
-
             </thead>
 
-
-            {/* Nội dung bảng */}
             <tbody>
+              {list.map((booking) => {
+                const services =
+                  booking.services?.length
+                    ? booking.services
+                    : booking.service
+                      ? [booking.service]
+                      : [];
 
-              {list
-                .sort((a, b) => b.id - a.id)
-                .map((booking) => (
-
-                  <tr key={booking.id}>
-
-                    {/* Dịch vụ */}
+                return (
+                  <tr key={booking._id}>
                     <td>
-                      {booking.serviceName}
+                      {services.map((service) => service.name).join(" + ") ||
+                        "Không có dịch vụ"}
                     </td>
-
-
-                    {/* Nhân viên */}
+                    <td>{booking.employee?.name || "Chưa phân công"}</td>
+                    <td>{booking.date}</td>
+                    <td>{booking.time}</td>
                     <td>
-                      {booking.staffName}
-                    </td>
-
-
-                    {/* Ngày */}
-                    <td>
-                      {booking.date}
-                    </td>
-
-
-                    {/* Giờ */}
-                    <td>
-                      {booking.time}
-                    </td>
-
-
-                    {/* Trạng thái */}
-                    <td>
-
-                      <span
-                        className={`status ${booking.status}`}
-                      >
-                        {labels[booking.status]}
+                      <span className={`status ${booking.status}`}>
+                        {labels[booking.status] || booking.status}
                       </span>
-
                     </td>
-
-
-                    {/* Nút hủy */}
                     <td>
-
-                      {![
-                        "completed",
-                        "cancelled"
-                      ].includes(booking.status) && (
-
+                      {booking.paymentMethod === "qr" ? "📱 Quét mã QR" : "💵 Tiền mặt tại quầy"}
+                      <br/><small>{booking.paymentStatus === "paid" ? "Đã thanh toán" : "Chưa thanh toán"}</small>
+                    </td>
+                    <td>
+                      {!["completed", "cancelled"].includes(booking.status) && (
                         <button
                           className="danger"
-                          onClick={() => cancel(booking.id)}
+                          onClick={() => cancel(booking._id)}
                         >
                           Hủy
                         </button>
-
                       )}
-
                     </td>
-
                   </tr>
-
-                ))}
-
+                );
+              })}
             </tbody>
-
           </table>
-
         </div>
       )}
-
     </main>
   );
 }
