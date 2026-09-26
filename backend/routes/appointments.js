@@ -1,177 +1,209 @@
-const router = require("express").Router();
+const express = require("express");
+const router = express.Router();
+
 const Appointment = require("../models/Appointment");
+const User = require("../models/User");
 const Service = require("../models/Service");
-const WorkSchedule = require("../models/WorkSchedule");
 const { auth, role } = require("../middleware/auth");
+const { sendEmail } = require("../utils/emailLogger");
+
+function getServiceIds(body) {
+  if (Array.isArray(body.services)) return body.services.filter(Boolean);
+  if (body.service) return [body.service];
+  return [];
+}
+
+function serviceList(appointment) {
+  if (appointment.services && appointment.services.length) return appointment.services;
+  if (appointment.service) return [appointment.service];
+  return [];
+}
 
 router.get("/", auth, async (req, res) => {
-  const q =
-    req.user.role === "customer"
-      ? { customer: req.user.id }
-      : req.user.role === "employee"
-        ? { employee: req.user.id }
-        : {};
+  try {
+    const filter = {};
+    if (req.user.role === "customer") filter.customer = req.user.id;
+    if (req.user.role === "employee") filter.employee = req.user.id;
 
-  const appointments = await Appointment.find(q)
-    .populate("customer", "name email")
-    .populate("employee", "name")
-    .populate("services", "name price duration")
-    .populate("service", "name price duration")
-    .sort({ date: 1, time: 1 });
+    const appointments = await Appointment.find(filter)
+      .populate("customer", "name email")
+      .populate("employee", "name email")
+      .populate("services", "name duration price image")
+      .populate("service", "name duration price image")
+      .sort({ date: 1, time: 1 });
 
-  res.json(appointments);
+    res.json(appointments);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Lỗi lấy danh sách lịch hẹn", error: e.message });
+  }
 });
 
 router.post("/", auth, role("customer"), async (req, res) => {
   try {
-    const {
-      services,
-      service,
-      employee,
-      date,
-      time,
-      note,
-      paymentMethod = "cash"
-    } = req.body;
+    const { employee, date, time, note, paymentMethod } = req.body;
+    const serviceIds = getServiceIds(req.body);
 
-    // Hỗ trợ cả dữ liệu mới services[] và dữ liệu cũ service.
-    const serviceIds = Array.isArray(services) && services.length
-      ? services
-      : service
-        ? [service]
-        : [];
-
-    if (!serviceIds.length || !date || !time) {
+    if (!serviceIds.length || !employee || !date || !time) {
       return res.status(400).json({
-        message: "Vui lòng chọn ít nhất một dịch vụ, ngày và giờ."
+        message: "Vui lòng chọn ít nhất một dịch vụ, nhân viên, ngày và giờ."
       });
     }
 
-    const validServices = await Service.find({
+    const services = await Service.find({
       _id: { $in: serviceIds },
       active: true
     });
 
-    if (validServices.length !== serviceIds.length) {
-      return res.status(400).json({
-        message: "Một hoặc nhiều dịch vụ không hợp lệ hoặc đã ngừng hoạt động."
-      });
+    if (services.length !== serviceIds.length) {
+      return res.status(400).json({ message: "Dịch vụ không tồn tại hoặc đã ngừng hoạt động." });
     }
 
-    if (employee) {
-      const dayOfWeek = new Date(`${date}T00:00:00`).getDay();
-      const schedule = await WorkSchedule.findOne({
-        employee, active: true,
-        $or: [{ date }, { date: { $exists: false }, dayOfWeek }]
-      }).sort({ date: -1 });
-      if (!schedule) return res.status(400).json({ message: "Nhân viên chưa được xếp ca trong ngày này." });
+    const employeeData = await User.findOne({ _id: employee, role: "employee" });
+    if (!employeeData) return res.status(404).json({ message: "Không tìm thấy nhân viên." });
 
-      const toMinutes = value => { const [h,m] = String(value).split(":").map(Number); return h*60+m; };
-      const start = toMinutes(time);
-      const end = start + validServices.reduce((sum,s) => sum + Number(s.duration || 0), 0);
-      if (start < toMinutes(schedule.startTime) || end > toMinutes(schedule.endTime)) {
-        return res.status(400).json({ message: "Lịch hẹn nằm ngoài ca làm của nhân viên." });
-      }
+    const existed = await Appointment.findOne({
+      employee,
+      date,
+      time,
+      status: { $in: ["pending", "confirmed"] }
+    });
 
-      const busy = await Appointment.find({ employee, date, status: { $in: ["pending", "confirmed"] } })
-        .populate("services", "duration").populate("service", "duration");
-      const overlap = busy.some(item => {
-        const oldDocs = item.services?.length ? item.services : (item.service ? [item.service] : []);
-        const oldDuration = oldDocs.reduce((sum,s) => sum + Number(s.duration || 0), 0);
-        const oldStart = toMinutes(item.time);
-        return start < oldStart + oldDuration && end > oldStart;
-      });
-      if (overlap) return res.status(400).json({ message: "Khung giờ này bị trùng với lịch khác của nhân viên." });
-    }
+    if (existed) return res.status(400).json({ message: "Khung giờ này đã được đặt. Vui lòng chọn giờ khác." });
 
     const appointment = await Appointment.create({
       customer: req.user.id,
-      employee: employee || undefined,
+      employee,
       services: serviceIds,
-      // service đầu tiên giúp tương thích với dữ liệu/API cũ.
       service: serviceIds[0],
       date,
       time,
-      note,
-      paymentMethod: ["cash","qr"].includes(paymentMethod) ? paymentMethod : "cash",
-      paymentStatus: "unpaid"
+      note: note || "",
+      paymentMethod: paymentMethod === "qr" ? "qr" : "cash",
+      paymentStatus: "unpaid",
+      status: "pending"
     });
 
-    const result = await Appointment.findById(appointment._id)
-      .populate("services", "name price duration")
-      .populate("employee", "name");
-
-    res.status(201).json(result);
-  } catch (e) {
-    res.status(400).json({ message: e.message });
-  }
-});
-
-router.put("/:id/assign", auth, role("admin"), async (req, res) => {
-  try {
-    const { employee } = req.body;
-    if (!employee) return res.status(400).json({ message: "Vui lòng chọn nhân viên." });
-    const appointment = await Appointment.findById(req.params.id);
-    if (!appointment) return res.status(404).json({ message: "Không tìm thấy lịch hẹn." });
-    if (appointment.status === "cancelled") return res.status(400).json({ message: "Lịch đã hủy không thể xếp nhân viên." });
-
-    const busy = await Appointment.findOne({
-      _id: { $ne: appointment._id }, employee, date: appointment.date,
-      status: { $in: ["pending", "confirmed"] }
-    }).populate("services", "duration").populate("service", "duration");
-
-    const minutes = value => { const [h,m] = String(value).split(":").map(Number); return h*60+m; };
-    const serviceDocs = appointment.services?.length ? appointment.services : (appointment.service ? [appointment.service] : []);
-    const duration = serviceDocs.reduce((sum,s) => sum + Number(s.duration || 0), 0);
-    if (busy) {
-      const oldDocs = busy.services?.length ? busy.services : (busy.service ? [busy.service] : []);
-      const oldDuration = oldDocs.reduce((sum,s) => sum + Number(s.duration || 0), 0);
-      const a = minutes(appointment.time), b = minutes(busy.time);
-      if (a < b + oldDuration && a + duration > b) return res.status(400).json({ message: "Nhân viên đã có lịch trùng giờ." });
+    const customer = await User.findById(req.user.id);
+    if (customer?.email) {
+      const names = services.map(s => s.name).join(", ");
+      const total = services.reduce((sum, s) => sum + Number(s.price || 0), 0);
+      const duration = services.reduce((sum, s) => sum + Number(s.duration || 0), 0);
+      sendEmail(
+        customer.email,
+        "Xác nhận đặt lịch dịch vụ",
+        `Xin chào ${customer.name},\n\nBạn đã đặt lịch thành công.\n\nDịch vụ: ${names}\nNhân viên: ${employeeData.name}\nNgày: ${date}\nGiờ: ${time}\nThời gian: ${duration} phút\nTổng tiền: ${total.toLocaleString("vi-VN")}đ\nThanh toán: ${paymentMethod === "qr" ? "Quét mã QR" : "Tiền mặt tại quầy"}\nTrạng thái: Chờ xác nhận\n\nCảm ơn bạn đã sử dụng dịch vụ.`
+      );
     }
 
-    appointment.employee = employee;
-    await appointment.save();
-    res.json(await Appointment.findById(appointment._id).populate("customer", "name email").populate("employee", "name email").populate("services", "name price duration"));
-  } catch (e) { res.status(400).json({ message: e.message }); }
+    const result = await Appointment.findById(appointment._id)
+      .populate("customer", "name email")
+      .populate("employee", "name email")
+      .populate("services", "name duration price image")
+      .populate("service", "name duration price image");
+
+    res.status(201).json({ message: "Đặt lịch thành công", appointment: result });
+  } catch (e) {
+    console.error("BOOKING ERROR:", e);
+    res.status(500).json({ message: e.message || "Lỗi đặt lịch" });
+  }
 });
 
 router.put("/:id/status", auth, async (req, res) => {
-  const allowed =
-    req.user.role === "admin"
-      ? ["pending", "confirmed", "completed", "cancelled"]
-      : req.user.role === "employee"
-        ? ["confirmed", "completed"]
-        : ["cancelled"];
+  try {
+    const { status } = req.body;
+    const allowed = ["pending", "confirmed", "completed", "cancelled"];
+    if (!allowed.includes(status)) return res.status(400).json({ message: "Trạng thái không hợp lệ" });
 
-  if (!allowed.includes(req.body.status)) {
-    return res.status(403).json({ message: "Không thể đổi trạng thái" });
+    const appointment = await Appointment.findById(req.params.id)
+      .populate("customer", "name email")
+      .populate("employee", "name email")
+      .populate("services", "name duration price")
+      .populate("service", "name duration price");
+
+    if (!appointment) return res.status(404).json({ message: "Không tìm thấy lịch hẹn" });
+
+    const uid = req.user.id.toString();
+    const customerId = appointment.customer?._id?.toString();
+    const employeeId = appointment.employee?._id?.toString();
+    const isAdmin = req.user.role === "admin";
+    const isEmployee = req.user.role === "employee" && employeeId === uid;
+    const isCustomer = req.user.role === "customer" && customerId === uid;
+
+    if (isCustomer && status !== "cancelled") return res.status(403).json({ message: "Khách hàng chỉ được hủy lịch" });
+    if (!isAdmin && !isEmployee && !isCustomer) return res.status(403).json({ message: "Bạn không có quyền thực hiện thao tác này" });
+
+    appointment.status = status;
+    await appointment.save();
+
+    const customer = appointment.customer;
+    if (customer?.email && ["confirmed", "completed", "cancelled"].includes(status)) {
+      const names = serviceList(appointment).map(s => s.name).join(", ");
+      const subjectMap = {
+        confirmed: "Lịch hẹn đã được xác nhận",
+        completed: "Lịch hẹn đã hoàn thành",
+        cancelled: "Lịch hẹn đã bị hủy"
+      };
+      const statusMap = { confirmed: "Đã xác nhận", completed: "Hoàn thành", cancelled: "Đã hủy" };
+      sendEmail(
+        customer.email,
+        subjectMap[status],
+        `Xin chào ${customer.name},\n\nDịch vụ: ${names}\nNhân viên: ${appointment.employee?.name || ""}\nNgày: ${appointment.date}\nGiờ: ${appointment.time}\nTrạng thái: ${statusMap[status]}.`
+      );
+    }
+
+    res.json({ message: "Cập nhật trạng thái thành công", appointment });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Lỗi cập nhật trạng thái", error: e.message });
   }
+});
 
-  res.json(
-    await Appointment.findByIdAndUpdate(
-      req.params.id,
-      { status: req.body.status, note: req.body.note },
-      { new: true }
-    )
-  );
+router.put("/:id", auth, async (req, res) => {
+  try {
+    const updated = await Appointment.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate("customer", "name email")
+      .populate("employee", "name email")
+      .populate("services", "name duration price")
+      .populate("service", "name duration price");
+    if (!updated) return res.status(404).json({ message: "Không tìm thấy lịch hẹn" });
+    res.json({ message: "Cập nhật lịch hẹn thành công", appointment: updated });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Lỗi cập nhật lịch hẹn", error: e.message });
+  }
 });
 
 router.delete("/:id", auth, async (req, res) => {
-  const a = await Appointment.findById(req.params.id);
+  try {
+    const appointment = await Appointment.findById(req.params.id)
+      .populate("customer", "name email")
+      .populate("employee", "name email")
+      .populate("services", "name duration price")
+      .populate("service", "name duration price");
 
-  if (!a) {
-    return res.status(404).json({ message: "Không tìm thấy lịch" });
+    if (!appointment) return res.status(404).json({ message: "Không tìm thấy lịch hẹn" });
+
+    const isOwner = appointment.customer?._id?.toString() === req.user.id.toString();
+    if (!isOwner && req.user.role !== "admin") return res.status(403).json({ message: "Bạn không có quyền hủy lịch này" });
+
+    appointment.status = "cancelled";
+    await appointment.save();
+
+    if (appointment.customer?.email) {
+      const names = serviceList(appointment).map(s => s.name).join(", ");
+      sendEmail(
+        appointment.customer.email,
+        "Lịch hẹn đã bị hủy",
+        `Xin chào ${appointment.customer.name},\n\nLịch hẹn đã được hủy.\nDịch vụ: ${names}\nNhân viên: ${appointment.employee?.name || ""}\nNgày: ${appointment.date}\nGiờ: ${appointment.time}`
+      );
+    }
+
+    res.json({ message: "Hủy lịch thành công", appointment });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Lỗi hủy lịch", error: e.message });
   }
-
-  if (req.user.role === "customer" && String(a.customer) !== req.user.id) {
-    return res.status(403).json({ message: "Không có quyền" });
-  }
-
-  a.status = "cancelled";
-  await a.save();
-
-  res.json({ message: "Đã hủy lịch" });
 });
 
 module.exports = router;

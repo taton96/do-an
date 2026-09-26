@@ -77,7 +77,7 @@ export default function MyBookings() {
                 <th>Nhân viên</th>
                 <th>Ngày</th>
                 <th>Giờ</th>
-                <th>Trạng thái</th>\n                <th>Thanh toán</th>
+                <th>Trạng thái</th>               <th>Thanh toán</th>
                 <th></th>
               </tr>
             </thead>
