@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
 import { initialServices } from "../data";
 
 export default function Booking() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [services, setServices] = useState([]);
   const [staff, setStaff] = useState([]);
   const [slots, setSlots] = useState([]);
   const [selectedServiceIds, setSelectedServiceIds] = useState([]);
+  const [selectedSubServices, setSelectedSubServices] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [form, setForm] = useState({ staffId: "", date: "", time: "", note: "" });
   const [message, setMessage] = useState("");
@@ -45,7 +47,13 @@ export default function Booking() {
           ? serviceRes.data.map(normalizeService)
           : [];
 
-        setServices(serviceData.filter(s => s.active));
+        const activeServices = serviceData.filter(s => s.active);
+        setServices(activeServices);
+
+        const requestedService = searchParams.get("service");
+        if (requestedService && activeServices.some(s => String(s._id) === String(requestedService))) {
+          setSelectedServiceIds([requestedService]);
+        }
 
         const employeeData = Array.isArray(employeeRes.data)
           ? employeeRes.data
@@ -69,26 +77,44 @@ export default function Booking() {
 
     loadData();
     return () => { mounted = false; };
-  }, []);
+  }, [searchParams]);
 
   const selectedServices = useMemo(
     () => services.filter(s => selectedServiceIds.includes(s._id)),
     [services, selectedServiceIds]
   );
 
+  const selectedSubTotal = selectedSubServices.reduce(
+    (sum, item) => sum + Number(item.price || 0), 0
+  );
+
   const totalPrice = selectedServices.reduce(
     (sum, s) => sum + Number(s.price || 0), 0
-  );
+  ) + selectedSubTotal;
   const totalDuration = selectedServices.reduce(
     (sum, s) => sum + Number(s.duration || 0), 0
   );
 
   const toggleService = (id) => {
+    const willRemove = selectedServiceIds.includes(id);
     setSelectedServiceIds(cur =>
       cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id]
     );
+    if (willRemove) {
+      setSelectedSubServices(cur => cur.filter(item => String(item.mainService) !== String(id)));
+    }
     setForm(x => ({ ...x, time: "" }));
     setMessage("");
+  };
+
+  const toggleSubService = (mainService, sub) => {
+    setSelectedSubServices(cur => {
+      const exists = cur.some(item => String(item.mainService) === String(mainService) && item.name === sub.name);
+      if (exists) {
+        return cur.filter(item => !(String(item.mainService) === String(mainService) && item.name === sub.name));
+      }
+      return [...cur, { mainService, name: sub.name, price: Number(sub.price || 0) }];
+    });
   };
 
   useEffect(() => {
@@ -141,6 +167,7 @@ export default function Booking() {
         date: form.date,
         time: form.time,
         note: form.note,
+        selectedSubServices,
         paymentMethod
       });
 
@@ -168,7 +195,7 @@ export default function Booking() {
           <div className="loading">Đang tải danh sách dịch vụ...</div>
         ) : (
           <form onSubmit={submit}>
-            <label>Dịch vụ</label>
+            <label>Dịch vụ chính</label>
 
             {services.length === 0 ? (
               <div className="empty-state">
@@ -211,6 +238,32 @@ export default function Booking() {
               </div>
             )}
 
+            {selectedServices.map(service => (
+              <div className="subservice-box" key={`sub-${service._id}`}>
+                <div className="subservice-title">
+                  <strong>{service.name} – Mục phụ</strong>
+                  <small>Chọn thêm nếu khách có nhu cầu</small>
+                </div>
+                <div className="subservice-list">
+                  {(service.subServices || []).map((sub, index) => {
+                    const subId = `${service._id}-${index}`;
+                    const checked = selectedSubServices.some(item => String(item.mainService) === String(service._id) && item.name === sub.name);
+                    return (
+                      <label className={`subservice-option ${checked ? "selected" : ""}`} key={subId}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleSubService(service._id, sub)}
+                        />
+                        <span>{sub.name}</span>
+                        <strong>+{Number(sub.price || 0).toLocaleString("vi-VN")}đ</strong>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
             {selectedServices.length > 0 && (
               <div className="booking-summary">
                 <div>
@@ -221,12 +274,18 @@ export default function Booking() {
                   {selectedServices.map(s => (
                     <span key={s._id}>{s.name}</span>
                   ))}
+                  {selectedSubServices.map((s, i) => (
+                    <span key={`sub-chip-${s.mainService}-${i}`}>+ {s.name}</span>
+                  ))}
                 </div>
 
                 <div className="booking-total">
                   Tổng thời gian: <strong>{totalDuration} phút</strong>
                   {" · "}
                   Tổng tiền: <strong>{totalPrice.toLocaleString("vi-VN")}đ</strong>
+                  {selectedSubTotal > 0 && (
+                    <span className="sub-total-note"> (đã gồm +{selectedSubTotal.toLocaleString("vi-VN")}đ mục phụ)</span>
+                  )}
                 </div>
               </div>
             )}

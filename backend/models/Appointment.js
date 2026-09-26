@@ -20,6 +20,13 @@ const appointmentSchema = new mongoose.Schema({
   date: { type: String, required: true },
   time: { type: String, required: true },
   note: String,
+  // Các mục phụ khách chọn trong từng dịch vụ chính, lưu dạng snapshot để giữ đúng giá lúc đặt.
+  selectedSubServices: [{
+    mainService: { type: mongoose.Schema.Types.ObjectId, ref: "Service" },
+    name: { type: String, required: true },
+    price: { type: Number, default: 0, min: 0 }
+  }],
+
   paymentMethod: {
     type: String,
     enum: ["cash", "qr"],

@@ -1,28 +1,54 @@
-# Booking System - Multi Service + Employee Scheduling
+# Booking System - 4 dịch vụ chính
 
-Luồng hoàn chỉnh:
-1. Khách đăng nhập/đăng ký.
-2. Chọn một hoặc nhiều dịch vụ.
-3. Chọn nhân viên.
-4. Chọn ngày đã được xếp ca.
-5. Chọn giờ trống trong ca.
-6. Đặt lịch.
-7. Lịch hẹn lưu MongoDB.
-8. Admin có thể xếp ca theo ngày cho nhân viên và gán nhân viên cho lịch chưa xếp.
-9. Nhân viên đăng nhập sẽ thấy các lịch được phân công từ MongoDB.
+## Công nghệ
+- Frontend: ReactJS + Vite
+- Backend: Node.js + Express
+- Database: MongoDB
+- Authentication: JWT + bcrypt
 
-## Chạy backend
+## 4 dịch vụ chính
+1. Cắt tóc
+   - Cắt tóc nam
+   - Cắt tóc nữ
+   - Tạo kiểu tóc
+   - Gội đầu thư giãn
+2. Massage
+   - Massage toàn thân
+   - Massage cổ vai gáy
+   - Massage chân
+   - Massage đá nóng
+3. Chăm sóc da
+   - Làm sạch da
+   - Cấp ẩm
+   - Trị mụn
+   - Chống lão hóa
+4. Chăm sóc sức khỏe
+   - Khám sức khỏe tổng quát
+   - Tư vấn dinh dưỡng
+   - Đo huyết áp
+   - Lấy ráy tai
+   - Thư giãn trị liệu
+
+Các mục trên được lưu trong trường `subServices` của dịch vụ chính, không tạo thành các dịch vụ chính riêng.
+
+## Hình ảnh
+Giao diện sử dụng bộ ảnh minh họa 3D cho 4 nhóm dịch vụ và ảnh tổng quan 4 nhóm trên trang chủ.
+
+## Chạy dự án
+### Backend
 ```bash
 cd backend
 npm install
 npm start
 ```
 
-## Chạy frontend
+### Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-MongoDB mặc định: `mongodb://127.0.0.1:27017/booking_system`.
+## Tài khoản mẫu
+- Admin: admin@gmail.com / 123456
+- Employee: employee1@gmail.com / 123456

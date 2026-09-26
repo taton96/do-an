@@ -944,3 +944,244 @@ footer p {
     padding: 22px;
   }
 }
+
+/* ==============================
+   4 DỊCH VỤ CHÍNH + ẢNH 3D
+   ============================== */
+.eyebrow {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  color: #2563eb;
+  margin-bottom: 7px;
+}
+
+.hero-3d {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 48%, #f8fafc 100%);
+  color: #172554;
+  min-height: 610px;
+}
+
+.hero-3d .hero-copy {
+  padding: 30px 0;
+}
+
+.hero-3d .hero-copy h1 {
+  font-size: clamp(38px, 5vw, 64px);
+  line-height: 1.06;
+  margin: 18px 0;
+}
+
+.hero-3d .hero-copy p {
+  color: #475569;
+  max-width: 560px;
+}
+
+.hero-3d .badge {
+  color: #1d4ed8;
+  background: #ffffffcc;
+  border-color: #bfdbfe;
+}
+
+.hero-3d .btn {
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, .2);
+}
+
+.hero-3d-poster {
+  background: #fff;
+  padding: 10px;
+  border-radius: 28px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, .16);
+  transform: rotate(1deg);
+  overflow: hidden;
+}
+
+.hero-3d-poster img {
+  width: 100%;
+  display: block;
+  border-radius: 20px;
+}
+
+.home-services {
+  padding-top: 65px;
+}
+
+.services-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.services-heading h1 {
+  margin: 4px 0 8px;
+  font-size: 42px;
+}
+
+.services-heading p {
+  margin: 0;
+  color: #64748b;
+}
+
+.service-main-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px;
+}
+
+.service-main-grid.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.main-service-card {
+  overflow: hidden;
+  padding: 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  box-shadow: 0 12px 35px rgba(15, 23, 42, .08);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.main-service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, .13);
+}
+
+.main-service-image {
+  height: 280px;
+  overflow: hidden;
+  background: #f1f5f9;
+}
+
+.main-service-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.main-service-body {
+  padding: 24px;
+}
+
+.main-service-body h2,
+.main-service-body h3 {
+  margin: 6px 0 8px;
+  color: #172554;
+}
+
+.main-service-body p {
+  min-height: auto;
+  color: #64748b;
+  margin: 0 0 15px;
+}
+
+.service-number {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.service-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 0;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.service-meta span {
+  color: #64748b;
+}
+
+.service-meta b {
+  color: #2563eb;
+  font-size: 18px;
+}
+
+.main-service-body h4 {
+  margin: 18px 0 10px;
+}
+
+.sub-service-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px 14px;
+  margin-bottom: 18px;
+}
+
+.sub-service-list span {
+  color: #475569;
+  font-size: 14px;
+}
+
+.compact-list {
+  margin-top: 12px;
+}
+
+@media (max-width: 800px) {
+  .hero-3d {
+    min-height: auto;
+    padding: 45px 0;
+  }
+
+  .hero-content,
+  .service-main-grid,
+  .service-main-grid.compact {
+    grid-template-columns: 1fr;
+  }
+
+  .services-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .search {
+    width: 100%;
+  }
+
+  .hero-3d-poster {
+    transform: none;
+  }
+
+  .main-service-image {
+    height: 230px;
+  }
+}
+
+/* Chỉ hiển thị 4 dịch vụ chính; dịch vụ phụ mở trong hộp chi tiết khi bấm vào card. */
+.clickable-service { cursor: pointer; position: relative; }
+.clickable-service:focus { outline: 3px solid rgba(37,99,235,.22); outline-offset: 3px; }
+.service-badge { position:absolute; top:14px; left:14px; width:42px; height:42px; border-radius:50%; display:grid; place-items:center; background:rgba(255,255,255,.94); color:#1e40af; font-weight:800; box-shadow:0 6px 18px rgba(15,23,42,.12); }
+.service-modal-backdrop { position:fixed; inset:0; z-index:1000; background:rgba(15,23,42,.62); backdrop-filter:blur(5px); display:flex; align-items:center; justify-content:center; padding:24px; }
+.service-modal { width:min(860px,100%); max-height:90vh; overflow:auto; background:#fff; border-radius:24px; box-shadow:0 28px 80px rgba(15,23,42,.3); position:relative; display:grid; grid-template-columns:42% 58%; }
+.service-modal-image { width:100%; height:100%; min-height:430px; object-fit:cover; }
+.service-modal-content { padding:34px; }
+.service-modal-content h2 { margin:8px 0 10px; font-size:32px; }
+.service-modal-content h3 { margin:24px 0 14px; }
+.service-modal-meta { display:flex; gap:20px; align-items:center; margin:18px 0; padding:14px 16px; border-radius:14px; background:#f8fafc; }
+.service-modal-meta strong { margin-left:auto; font-size:20px; color:#1d4ed8; }
+.sub-service-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:24px; }
+.sub-service-detail { display:flex; gap:10px; align-items:flex-start; padding:13px; border:1px solid #e2e8f0; border-radius:13px; background:#fff; }
+.sub-service-detail > span { color:#16a34a; font-weight:800; }
+.sub-service-detail small { display:block; color:#64748b; margin-top:4px; }
+.modal-close { position:absolute; z-index:2; top:14px; right:14px; width:40px; height:40px; border:0; border-radius:50%; background:rgba(255,255,255,.94); font-size:28px; line-height:1; cursor:pointer; box-shadow:0 4px 15px rgba(15,23,42,.15); }
+@media (max-width:760px){ .service-modal { grid-template-columns:1fr; max-height:92vh; } .service-modal-image { min-height:220px; max-height:280px; } .service-modal-content { padding:24px; } .sub-service-detail-grid { grid-template-columns:1fr; } }
+
+/* Giá và lựa chọn mục phụ trong trang Đặt lịch */
+.subservice-box{margin:16px 0;padding:16px;border:1px solid #dbe3ef;border-radius:16px;background:#f8fbff}
+.subservice-title{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px}
+.subservice-title small{color:#64748b}
+.subservice-list{display:grid;gap:10px}
+.subservice-option{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer}
+.subservice-option.selected{border-color:#2563eb;background:#eff6ff}
+.subservice-option span{flex:1}
+.subservice-option strong{white-space:nowrap;color:#2563eb}
+.sub-total-note{font-size:13px;color:#64748b}

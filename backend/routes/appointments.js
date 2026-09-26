@@ -43,6 +43,7 @@ router.post("/", auth, role("customer"), async (req, res) => {
   try {
     const { employee, date, time, note, paymentMethod } = req.body;
     const serviceIds = getServiceIds(req.body);
+    const requestedSubServices = Array.isArray(req.body.selectedSubServices) ? req.body.selectedSubServices : [];
 
     if (!serviceIds.length || !employee || !date || !time) {
       return res.status(400).json({
@@ -62,6 +63,21 @@ router.post("/", auth, role("customer"), async (req, res) => {
     const employeeData = await User.findOne({ _id: employee, role: "employee" });
     if (!employeeData) return res.status(404).json({ message: "Không tìm thấy nhân viên." });
 
+    // Kiểm tra và lưu snapshot các mục phụ khách đã chọn, tránh tin giá từ frontend.
+    const selectedSubServices = [];
+    for (const item of requestedSubServices) {
+      const parent = services.find(s => String(s._id) === String(item.mainService));
+      if (!parent) continue;
+      const sub = (parent.subServices || []).find(x => x.name === item.name);
+      if (sub) {
+        selectedSubServices.push({
+          mainService: parent._id,
+          name: sub.name,
+          price: Number(sub.price || 0)
+        });
+      }
+    }
+
     const existed = await Appointment.findOne({
       employee,
       date,
@@ -79,6 +95,7 @@ router.post("/", auth, role("customer"), async (req, res) => {
       date,
       time,
       note: note || "",
+      selectedSubServices,
       paymentMethod: paymentMethod === "qr" ? "qr" : "cash",
       paymentStatus: "unpaid",
       status: "pending"
@@ -87,8 +104,11 @@ router.post("/", auth, role("customer"), async (req, res) => {
     const customer = await User.findById(req.user.id);
     if (customer?.email) {
       const names = services.map(s => s.name).join(", ");
-      const total = services.reduce((sum, s) => sum + Number(s.price || 0), 0);
+      const mainTotal = services.reduce((sum, s) => sum + Number(s.price || 0), 0);
+      const subTotal = selectedSubServices.reduce((sum, s) => sum + Number(s.price || 0), 0);
+      const total = mainTotal + subTotal;
       const duration = services.reduce((sum, s) => sum + Number(s.duration || 0), 0);
+      const subNames = selectedSubServices.map(s => `${s.name} (+${Number(s.price).toLocaleString("vi-VN")}đ)`).join(", ");
       sendEmail(
         customer.email,
         "Xác nhận đặt lịch dịch vụ",
@@ -99,8 +119,8 @@ router.post("/", auth, role("customer"), async (req, res) => {
     const result = await Appointment.findById(appointment._id)
       .populate("customer", "name email")
       .populate("employee", "name email")
-      .populate("services", "name duration price image")
-      .populate("service", "name duration price image");
+      .populate("services", "name duration price image subServices")
+      .populate("service", "name duration price image subServices");
 
     res.status(201).json({ message: "Đặt lịch thành công", appointment: result });
   } catch (e) {

@@ -32,14 +32,21 @@ async function seed(){
   }
 
   const serviceSeeds=[
-    {name:"Cắt tóc",description:"Cắt và tạo kiểu tóc",duration:45,price:100000,image:"/images/services/cat-toc.svg",active:true},
-    {name:"Gội đầu",description:"Gội đầu thư giãn",duration:30,price:80000,image:"/images/services/goi-dau.svg",active:true},
-    {name:"Massage",description:"Massage thư giãn toàn thân",duration:60,price:300000,image:"/images/services/massage.svg",active:true},
-    {name:"Chăm sóc da",description:"Chăm sóc và làm sạch da",duration:60,price:250000,image:"/images/services/cham-soc-da.svg",active:true},
-    {name:"Tư vấn",description:"Tư vấn dịch vụ trực tiếp",duration:30,price:150000,image:"/images/services/tu-van.svg",active:true},
-    {name:"Lấy ráy tai",description:"Lấy ráy tai nhẹ nhàng, vệ sinh và thư giãn",duration:20,price:60000,image:"/images/services/lay-ray-tai.svg",active:true},
-    {name:"Gội đầu xả",description:"Gội đầu kết hợp xả dưỡng tóc mềm mượt",duration:45,price:100000,image:"/images/services/goi-dau-xa.svg",active:true}
+    {name:"Cắt tóc",description:"Tạo phong cách tóc gọn gàng, phù hợp khuôn mặt.",duration:45,price:100000,image:"/images/services/cat-toc-3d.jpg",active:true,subServices:[
+      {name:"Cắt tóc nam",price:100000},{name:"Cắt tóc nữ",price:120000},{name:"Tạo kiểu tóc",price:50000},{name:"Gội đầu thư giãn",price:60000}
+    ]},
+    {name:"Massage",description:"Thư giãn cơ thể, giảm căng thẳng và mệt mỏi.",duration:60,price:300000,image:"/images/services/massage-3d.jpg",active:true,subServices:[
+      {name:"Massage toàn thân",price:300000},{name:"Massage cổ vai gáy",price:180000},{name:"Massage chân",price:150000},{name:"Massage đá nóng",price:350000}
+    ]},
+    {name:"Chăm sóc da",description:"Chăm sóc làn da sạch khỏe, mềm mịn và tươi sáng.",duration:60,price:250000,image:"/images/services/cham-soc-da-3d.jpg",active:true,subServices:[
+      {name:"Làm sạch da",price:80000},{name:"Cấp ẩm",price:100000},{name:"Trị mụn",price:150000},{name:"Chống lão hóa",price:200000}
+    ]},
+    {name:"Chăm sóc sức khỏe",description:"Theo dõi sức khỏe cơ bản và tư vấn chăm sóc cơ thể.",duration:30,price:150000,image:"/images/services/cham-soc-suc-khoe-3d.jpg",active:true,subServices:[
+      {name:"Khám sức khỏe tổng quát",price:200000},{name:"Tư vấn dinh dưỡng",price:120000},{name:"Đo huyết áp",price:30000},{name:"Lấy ráy tai",price:50000},{name:"Thư giãn trị liệu",price:100000}
+    ]}
   ];
+  const mainNames=serviceSeeds.map(service=>service.name);
+  await Service.updateMany({name:{$nin:mainNames}},{$set:{active:false}});
   for(const service of serviceSeeds){
     await Service.updateOne({name:service.name},{$set:service}, {upsert:true});
   }
