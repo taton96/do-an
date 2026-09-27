@@ -242,7 +242,7 @@ export default function Booking() {
               <div className="subservice-box" key={`sub-${service._id}`}>
                 <div className="subservice-title">
                   <strong>{service.name} – Mục phụ</strong>
-                  <small>Chọn thêm nếu khách có nhu cầu</small>
+        
                 </div>
                 <div className="subservice-list">
                   {(service.subServices || []).map((sub, index) => {

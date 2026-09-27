@@ -21,8 +21,7 @@ export default function Services() {
     <main className="container page services-page">
       <div className="services-heading">
         <div>
-          <span className="eyebrow">DỊCH VỤ</span>
-          <h1>4 dịch vụ chính</h1>
+          <h1>DỊCH VỤ</h1>
           <p>Chọn một dịch vụ chính để xem các hạng mục chăm sóc bên trong.</p>
         </div>
       </div>
@@ -42,7 +41,7 @@ export default function Services() {
               <span className="service-badge">0{index + 1}</span>
             </div>
             <div className="main-service-body">
-              <span className="service-number">DỊCH VỤ CHÍNH</span>
+             
               <h2>{s.name}</h2>
               <p>{s.description}</p>
               <div className="service-meta">
@@ -74,7 +73,7 @@ export default function Services() {
               alt={selected.name}
             />
             <div className="service-modal-content">
-              <span className="service-number">DỊCH VỤ CHÍNH</span>
+              
               <h2>{selected.name}</h2>
               <p>{selected.description}</p>
 
