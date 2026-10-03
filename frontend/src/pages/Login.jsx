@@ -67,10 +67,10 @@ export default function Login() {
         <form onSubmit={submit}>
 
           <label>
-            Email
+            Email hoặc số điện thoại
 
             <input
-              type="email"
+              type="text"
               value={form.email}
               onChange={(event) =>
                 setForm({
@@ -110,14 +110,7 @@ export default function Login() {
         </form>
 
 
-        {/* Đăng ký tài khoản */}
-        <p>
-          Chưa có tài khoản?{" "}
 
-          <Link to="/register">
-            Đăng ký
-          </Link>
-        </p>
 
       </div>
 

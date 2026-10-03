@@ -3,7 +3,7 @@ const bcrypt=require("bcryptjs");
 const User=require("../models/User");
 const {auth,role}=require("../middleware/auth");
 
-router.get("/",auth,async(req,res)=>{
+router.get("/",async(req,res)=>{
   const employees=await User.find({role:"employee"}).select("name email");
   res.json(employees);
 });

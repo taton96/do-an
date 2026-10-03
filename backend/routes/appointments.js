@@ -1,10 +1,12 @@
 const express = require("express");
 const router = express.Router();
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const Appointment = require("../models/Appointment");
 const User = require("../models/User");
 const Service = require("../models/Service");
-const { auth, role } = require("../middleware/auth");
+const { auth, optionalAuth, role } = require("../middleware/auth");
 const { sendEmail } = require("../utils/emailLogger");
 
 function getServiceIds(body) {
@@ -22,33 +24,67 @@ function serviceList(appointment) {
 router.get("/", auth, async (req, res) => {
   try {
     const filter = {};
-    if (req.user.role === "customer") filter.customer = req.user.id;
-    if (req.user.role === "employee") filter.employee = req.user.id;
+
+    // Admin: xem TOÀN BỘ lịch của hệ thống.
+    if (req.user.role === "admin") {
+      // giữ filter rỗng
+    }
+    // Nhân viên: chỉ xem lịch đã được gán cho chính mình.
+    else if (req.user.role === "employee") {
+      filter.employee = req.user.id;
+    }
+    // Khách hàng: chỉ xem lịch của tài khoản đang đăng nhập.
+    else if (req.user.role === "customer") {
+      filter.customer = req.user.id;
+    }
 
     const appointments = await Appointment.find(filter)
-      .populate("customer", "name email")
+      .populate("customer", "name email phone")
       .populate("employee", "name email")
       .populate("services", "name duration price image")
       .populate("service", "name duration price image")
-      .sort({ date: 1, time: 1 });
+      .sort({ date: 1, time: 1, createdAt: -1 });
 
     res.json(appointments);
   } catch (e) {
-    console.error(e);
+    console.error("GET APPOINTMENTS ERROR:", e);
     res.status(500).json({ message: "Lỗi lấy danh sách lịch hẹn", error: e.message });
   }
 });
 
-router.post("/", auth, role("customer"), async (req, res) => {
+// Endpoint riêng cho Admin, giúp phân biệt rõ dữ liệu quản trị.
+router.get("/admin/all", auth, role("admin"), async (req, res) => {
+  try {
+    const appointments = await Appointment.find({})
+      .populate("customer", "name email phone")
+      .populate("employee", "name email")
+      .populate("services", "name duration price image")
+      .populate("service", "name duration price image")
+      .sort({ date: 1, time: 1, createdAt: -1 });
+
+    res.json(appointments);
+  } catch (e) {
+    console.error("GET ADMIN APPOINTMENTS ERROR:", e);
+    res.status(500).json({ message: "Lỗi lấy lịch hẹn cho quản trị viên", error: e.message });
+  }
+});
+
+router.post("/", optionalAuth, async (req, res) => {
   try {
     const { employee, date, time, note, paymentMethod } = req.body;
+    const customerName = String(req.body.name || "").trim();
+    const phone = String(req.body.phone || "").trim();
     const serviceIds = getServiceIds(req.body);
     const requestedSubServices = Array.isArray(req.body.selectedSubServices) ? req.body.selectedSubServices : [];
 
-    if (!serviceIds.length || !employee || !date || !time) {
+    if (!customerName || !phone || !serviceIds.length || !employee || !date || !time) {
       return res.status(400).json({
-        message: "Vui lòng chọn ít nhất một dịch vụ, nhân viên, ngày và giờ."
+        message: "Vui lòng nhập họ tên, số điện thoại và chọn dịch vụ, nhân viên, ngày và giờ."
       });
+    }
+
+    if (!/^(0|\+84)[0-9\s.-]{8,14}$/.test(phone)) {
+      return res.status(400).json({ message: "Số điện thoại không hợp lệ." });
     }
 
     const services = await Service.find({
@@ -87,8 +123,53 @@ router.post("/", auth, role("customer"), async (req, res) => {
 
     if (existed) return res.status(400).json({ message: "Khung giờ này đã được đặt. Vui lòng chọn giờ khác." });
 
+    // Đặt lịch cũng đồng thời tạo/liên kết tài khoản khách hàng theo số điện thoại.
+    // Nếu khách đã đăng nhập bằng tài khoản customer thì dùng chính tài khoản đó.
+    let customer = req.user?.role === "customer"
+      ? await User.findById(req.user.id)
+      : null;
+    let accountCreated = false;
+    let temporaryPassword = "";
+
+    if (!customer) {
+      customer = await User.findOne({ phone, role: "customer" });
+    }
+
+    if (!customer) {
+      const normalizedPhone = phone.replace(/\D/g, "");
+      let email = `${normalizedPhone}@booking.local`;
+      const existingEmail = await User.findOne({ email });
+      if (existingEmail) email = `${normalizedPhone}-${Date.now()}@booking.local`;
+
+      temporaryPassword = Math.random().toString(36).slice(-8);
+      customer = await User.create({
+        name: customerName,
+        email,
+        phone,
+        password: await bcrypt.hash(temporaryPassword, 10),
+        role: "customer"
+      });
+      accountCreated = true;
+    } else {
+      customer.name = customerName || customer.name;
+      customer.phone = phone || customer.phone;
+
+      // Tương thích với tài khoản khách cũ được tạo trước khi có chức năng
+      // tự động đăng ký. Nếu bản ghi cũ thiếu password, cấp mật khẩu tạm
+      // và hash trước khi save để tránh lỗi User validation failed.
+      if (!customer.password) {
+        temporaryPassword = Math.random().toString(36).slice(-8);
+        customer.password = await bcrypt.hash(temporaryPassword, 10);
+        accountCreated = true;
+      }
+
+      await customer.save();
+    }
+
     const appointment = await Appointment.create({
-      customer: req.user.id,
+      customer: customer._id,
+      customerName,
+      customerPhone: phone,
       employee,
       services: serviceIds,
       service: serviceIds[0],
@@ -101,42 +182,109 @@ router.post("/", auth, role("customer"), async (req, res) => {
       status: "pending"
     });
 
-    const customer = await User.findById(req.user.id);
-    if (customer?.email) {
-      const names = services.map(s => s.name).join(", ");
-      const mainTotal = services.reduce((sum, s) => sum + Number(s.price || 0), 0);
-      const subTotal = selectedSubServices.reduce((sum, s) => sum + Number(s.price || 0), 0);
-      const total = mainTotal + subTotal;
-      const duration = services.reduce((sum, s) => sum + Number(s.duration || 0), 0);
-      const subNames = selectedSubServices.map(s => `${s.name} (+${Number(s.price).toLocaleString("vi-VN")}đ)`).join(", ");
-      sendEmail(
-        customer.email,
-        "Xác nhận đặt lịch dịch vụ",
-        `Xin chào ${customer.name},\n\nBạn đã đặt lịch thành công.\n\nDịch vụ: ${names}\nNhân viên: ${employeeData.name}\nNgày: ${date}\nGiờ: ${time}\nThời gian: ${duration} phút\nTổng tiền: ${total.toLocaleString("vi-VN")}đ\nThanh toán: ${paymentMethod === "qr" ? "Quét mã QR" : "Tiền mặt tại quầy"}\nTrạng thái: Chờ xác nhận\n\nCảm ơn bạn đã sử dụng dịch vụ.`
-      );
-    }
+    const token = jwt.sign(
+      { id: customer._id, name: customer.name, email: customer.email, phone: customer.phone, role: customer.role },
+      process.env.JWT_SECRET || "secret",
+      { expiresIn: "7d" }
+    );
 
     const result = await Appointment.findById(appointment._id)
-      .populate("customer", "name email")
+      .populate("customer", "name email phone")
       .populate("employee", "name email")
       .populate("services", "name duration price image subServices")
       .populate("service", "name duration price image subServices");
 
-    res.status(201).json({ message: "Đặt lịch thành công", appointment: result });
+    res.status(201).json({
+      message: accountCreated ? "Đặt lịch thành công. Tài khoản khách hàng đã được tạo tự động." : "Đặt lịch thành công.",
+      appointment: result,
+      accountCreated,
+      temporaryPassword,
+      auth: {
+        token,
+        user: {
+          id: customer._id,
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+          role: customer.role
+        }
+      }
+    });
   } catch (e) {
     console.error("BOOKING ERROR:", e);
     res.status(500).json({ message: e.message || "Lỗi đặt lịch" });
   }
 });
 
+// Admin xếp nhân viên cho lịch hẹn.
+// Đây là bước quan trọng để lịch vừa đặt xuất hiện trong lịch làm việc của nhân viên.
+router.put("/:id/assign", auth, role("admin"), async (req, res) => {
+  try {
+    const { employee } = req.body;
+    if (!employee) {
+      return res.status(400).json({ message: "Vui lòng chọn nhân viên." });
+    }
+
+    const employeeData = await User.findOne({ _id: employee, role: "employee" })
+      .select("name email");
+    if (!employeeData) {
+      return res.status(404).json({ message: "Không tìm thấy nhân viên." });
+    }
+
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) {
+      return res.status(404).json({ message: "Không tìm thấy lịch hẹn." });
+    }
+
+    if (appointment.status === "cancelled") {
+      return res.status(400).json({ message: "Không thể xếp nhân viên cho lịch đã hủy." });
+    }
+
+    // Không cho một nhân viên nhận 2 lịch cùng ngày và cùng giờ.
+    const conflict = await Appointment.findOne({
+      _id: { $ne: appointment._id },
+      employee: employeeData._id,
+      date: appointment.date,
+      time: appointment.time,
+      status: { $in: ["pending", "confirmed"] }
+    });
+
+    if (conflict) {
+      return res.status(400).json({
+        message: "Nhân viên này đã có lịch ở khung giờ đó. Vui lòng chọn nhân viên khác."
+      });
+    }
+
+    appointment.employee = employeeData._id;
+    await appointment.save();
+
+    const result = await Appointment.findById(appointment._id)
+      .populate("customer", "name email phone")
+      .populate("employee", "name email")
+      .populate("services", "name duration price image")
+      .populate("service", "name duration price image");
+
+    res.json({
+      message: `Đã xếp lịch cho ${employeeData.name}. Lịch này sẽ xuất hiện ở tài khoản nhân viên.`,
+      appointment: result
+    });
+  } catch (e) {
+    console.error("ASSIGN APPOINTMENT ERROR:", e);
+    res.status(500).json({
+      message: "Không thể xếp nhân viên.",
+      error: e.message
+    });
+  }
+});
+
 router.put("/:id/status", auth, async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, cancellationReason } = req.body;
     const allowed = ["pending", "confirmed", "completed", "cancelled"];
     if (!allowed.includes(status)) return res.status(400).json({ message: "Trạng thái không hợp lệ" });
 
     const appointment = await Appointment.findById(req.params.id)
-      .populate("customer", "name email")
+      .populate("customer", "name email phone")
       .populate("employee", "name email")
       .populate("services", "name duration price")
       .populate("service", "name duration price");
@@ -154,6 +302,13 @@ router.put("/:id/status", auth, async (req, res) => {
     if (!isAdmin && !isEmployee && !isCustomer) return res.status(403).json({ message: "Bạn không có quyền thực hiện thao tác này" });
 
     appointment.status = status;
+    if (status === "cancelled") {
+      appointment.cancelledAt = new Date();
+      appointment.cancellationReason = String(cancellationReason || "").trim().slice(0, 500);
+    } else {
+      appointment.cancelledAt = undefined;
+      appointment.cancellationReason = "";
+    }
     await appointment.save();
 
     const customer = appointment.customer;
@@ -182,7 +337,7 @@ router.put("/:id/status", auth, async (req, res) => {
 router.put("/:id", auth, async (req, res) => {
   try {
     const updated = await Appointment.findByIdAndUpdate(req.params.id, req.body, { new: true })
-      .populate("customer", "name email")
+      .populate("customer", "name email phone")
       .populate("employee", "name email")
       .populate("services", "name duration price")
       .populate("service", "name duration price");
@@ -197,7 +352,7 @@ router.put("/:id", auth, async (req, res) => {
 router.delete("/:id", auth, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id)
-      .populate("customer", "name email")
+      .populate("customer", "name email phone")
       .populate("employee", "name email")
       .populate("services", "name duration price")
       .populate("service", "name duration price");
@@ -208,6 +363,8 @@ router.delete("/:id", auth, async (req, res) => {
     if (!isOwner && req.user.role !== "admin") return res.status(403).json({ message: "Bạn không có quyền hủy lịch này" });
 
     appointment.status = "cancelled";
+    appointment.cancelledAt = new Date();
+    appointment.cancellationReason = String(req.body?.cancellationReason || "").trim().slice(0, 500);
     await appointment.save();
 
     if (appointment.customer?.email) {

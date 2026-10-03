@@ -1,7 +1,9 @@
 const mongoose = require("mongoose");
 
 const appointmentSchema = new mongoose.Schema({
-  customer: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  customerName: { type: String, required: true, trim: true },
+  customer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  customerPhone: { type: String, required: true, trim: true },
   employee: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
   // Một lịch hẹn có thể gồm nhiều dịch vụ.
@@ -37,6 +39,8 @@ const appointmentSchema = new mongoose.Schema({
     enum: ["unpaid", "paid"],
     default: "unpaid"
   },
+  cancellationReason: { type: String, default: "", trim: true },
+  cancelledAt: { type: Date },
   status: {
     type: String,
     enum: ["pending", "confirmed", "completed", "cancelled"],
