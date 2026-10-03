@@ -1,113 +1,110 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import {
-  initialServices,
-  getData
-} from "../data";
-
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../api";
+import { initialServices } from "../data";
 
 export default function Services() {
+  const navigate = useNavigate();
+  const [services, setServices] = useState(initialServices);
+  const [selected, setSelected] = useState(null);
 
-  // Ô tìm kiếm
-  const [search, setSearch] = useState("");
-
-
-  // Lấy danh sách dịch vụ
-  const services = getData(
-    "services",
-    initialServices
-  );
-
-
-  // Lọc dịch vụ đang hoạt động và tìm kiếm theo tên
-  const filteredServices = services.filter(
-    (service) =>
-      service.status === "active" &&
-      service.name
-        .toLowerCase()
-        .includes(search.toLowerCase())
-  );
-
+  useEffect(() => {
+    api.get("/services").then(r => {
+      const active = Array.isArray(r.data)
+        ? r.data.filter(s => s.active !== false)
+        : [];
+      if (active.length) setServices(active);
+    }).catch(() => {});
+  }, []);
 
   return (
-    <main className="container page">
-
-      {/* Tiêu đề và tìm kiếm */}
-      <div className="section-title">
-
-        <h1>
-          Dịch vụ
-        </h1>
-
-        <input
-          className="search"
-          type="text"
-          placeholder="Tìm dịch vụ..."
-          value={search}
-          onChange={(event) =>
-            setSearch(event.target.value)
-          }
-        />
-
+    <main className="container page services-page">
+      <div className="services-heading">
+        <div>
+          <h1>DỊCH VỤ</h1>
+          <p>Chọn một dịch vụ chính để xem các hạng mục chăm sóc bên trong.</p>
+        </div>
       </div>
 
-
-      {/* Danh sách dịch vụ */}
-      <div className="grid">
-
-        {filteredServices.map((service) => (
-
-          <div
-            className="card"
-            key={service.id}
+      <div className="service-main-grid">
+        {services.slice(0, 4).map((s, index) => (
+          <article
+            className="main-service-card clickable-service"
+            key={s._id || s.id}
+            onClick={() => setSelected(s)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={e => e.key === "Enter" && setSelected(s)}
           >
-
-            {/* Icon */}
-            <div className="icon">
-              ★
+            <div className="main-service-image">
+              <img src={s.image || "/images/services/dich-vu-4-nhom-3d.jpg"} alt={s.name} />
+              <span className="service-badge">0{index + 1}</span>
             </div>
-
-
-            {/* Tên dịch vụ */}
-            <h2>
-              {service.name}
-            </h2>
-
-
-            {/* Mô tả */}
-            <p>
-              {service.description}
-            </p>
-
-
-            {/* Thời gian và giá */}
-            <div className="row">
-
-              <span>
-                {service.duration} phút
-              </span>
-
-              <b>
-                {service.price.toLocaleString("vi-VN")}đ
-              </b>
-
+            <div className="main-service-body">
+             
+              <h2>{s.name}</h2>
+              <p>{s.description}</p>
+              <div className="service-meta">
+                <span>{s.duration} phút</span>
+                <b>{Number(s.price || 0).toLocaleString("vi-VN")}đ</b>
+              </div>
+              <button
+                type="button"
+                className="btn small"
+                onClick={e => {
+                  e.stopPropagation();
+                  setSelected(s);
+                }}
+              >
+                Xem dịch vụ bên trong
+              </button>
             </div>
-
-
-            {/* Đặt lịch */}
-            <Link
-              to="/booking"
-              className="btn small"
-            >
-              Đặt lịch
-            </Link>
-
-          </div>
-
+          </article>
         ))}
-
       </div>
 
+      {selected && (
+        <div className="service-modal-backdrop" onClick={() => setSelected(null)}>
+          <div className="service-modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setSelected(null)} aria-label="Đóng">×</button>
+            <img
+              className="service-modal-image"
+              src={selected.image || "/images/services/dich-vu-4-nhom-3d.jpg"}
+              alt={selected.name}
+            />
+            <div className="service-modal-content">
+              
+              <h2>{selected.name}</h2>
+              <p>{selected.description}</p>
+
+              <div className="service-modal-meta">
+                <span>⏱ {selected.duration} phút</span>
+                <strong>{Number(selected.price || 0).toLocaleString("vi-VN")}đ</strong>
+              </div>
+
+              <h3>Các hạng mục trong {selected.name}</h3>
+              <div className="sub-service-detail-grid">
+                {(selected.subServices || []).map((sub, i) => (
+                  <div className="sub-service-detail" key={i}>
+                    <span>✓</span>
+                    <div>
+                      <strong>{typeof sub === "string" ? sub : sub.name}</strong>
+                      {typeof sub !== "string" && sub.description && <small>{sub.description}</small>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                className="btn"
+                onClick={() => navigate(`/booking?service=${selected._id || selected.id}`)}
+              >
+                Đặt lịch {selected.name}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

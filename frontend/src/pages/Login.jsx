@@ -17,13 +17,13 @@ export default function Login() {
 
 
   // Xử lý đăng nhập
-  function submit(event) {
+  async function submit(event) {
 
     event.preventDefault();
 
     try {
 
-      const user = login(
+      const user = await login(
         form.email,
         form.password
       );
@@ -32,7 +32,7 @@ export default function Login() {
       if (user.role === "admin") {
         navigate("/admin");
 
-      } else if (user.role === "staff") {
+      } else if (user.role === "employee") {
         navigate("/staff");
 
       } else {
@@ -55,14 +55,6 @@ export default function Login() {
         <h1>
           Đăng nhập
         </h1>
-
-
-        {/* Tài khoản Demo */}
-        <p className="hint">
-          Demo: admin@gmail.com / 123456
-        </p>
-
-
         {/* Thông báo lỗi */}
         {error && (
           <div className="error">
