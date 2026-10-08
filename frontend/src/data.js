@@ -10,7 +10,7 @@ export const initialServices = [
     status: "active",
     active: true,
     image: "/images/services/cat-toc-3d.jpg",
-    subServices: [{name:"Cắt tóc nam",price:100000},{name:"Cắt tóc nữ",price:120000},{name:"Tạo kiểu tóc",price:50000},{name:"Gội đầu thư giãn",price:60000}]
+    subServices: [{name:"Cắt tóc nam",price:100000},{name:"Cắt tóc nữ",price:120000},{name:"Tạo kiểu tóc",price:50000},{name:"Lấy ráy tai",price:50000}]
   },
   {
     id: 2,
@@ -32,7 +32,7 @@ export const initialServices = [
     status: "active",
     active: true,
     image: "/images/services/cham-soc-da-3d.jpg",
-    subServices: [{name:"Làm sạch da",price:80000},{name:"Cấp ẩm",price:100000},{name:"Trị mụn",price:150000},{name:"Chống lão hóa",price:200000}]
+    subServices: [{name:"Gội đầu xả",price:60000},{name:"Làm sạch da",price:80000},{name:"Cấp ẩm",price:100000},{name:"Trị mụn",price:150000},{name:"Chống lão hóa",price:200000}]
   },
   {
     id: 4,
@@ -43,7 +43,7 @@ export const initialServices = [
     status: "active",
     active: true,
     image: "/images/services/cham-soc-suc-khoe-3d.jpg",
-    subServices: [{name:"Khám sức khỏe tổng quát",price:200000},{name:"Tư vấn dinh dưỡng",price:120000},{name:"Đo huyết áp",price:30000},{name:"Lấy ráy tai",price:50000},{name:"Thư giãn trị liệu",price:100000}]
+    subServices: [{name:"Khám sức khỏe tổng quát",price:200000},{name:"Tư vấn dinh dưỡng",price:120000},{name:"Đo huyết áp",price:30000},{name:"Thư giãn trị liệu",price:100000}]
   }
 ];
 

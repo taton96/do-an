@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import api from "../api";
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
 
   const [name, setName] = useState(user?.name || "");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -24,30 +25,25 @@ export default function Profile() {
       ? "Quản trị viên"
       : user?.role || "Thành viên";
 
-  const handleNameChange = (e) => {
+  const handleNameChange = async (e) => {
     e.preventDefault();
     setError("");
     setMessage("");
-
     const value = name.trim();
     if (!value) {
-      setError("Vui lòng nhập tên khách hàng.");
+      setError("Vui lòng nhập họ và tên.");
       return;
     }
-
     try {
-      const saved = JSON.parse(localStorage.getItem("user") || "null");
-      if (saved) {
-        const updated = { ...saved, name: value };
-        localStorage.setItem("user", JSON.stringify(updated));
-      }
-      setMessage("Đã cập nhật tên khách hàng.");
-    } catch {
-      setError("Không thể cập nhật thông tin lúc này.");
+      const { data } = await api.patch("/auth/profile", { name: value });
+      updateUser(data.user);
+      setMessage("Đã cập nhật họ và tên.");
+    } catch (err) {
+      setError(err.response?.data?.message || "Không thể cập nhật thông tin lúc này.");
     }
   };
 
-  const handlePasswordChange = (e) => {
+  const handlePasswordChange = async (e) => {
     e.preventDefault();
     setError("");
     setMessage("");
@@ -67,12 +63,17 @@ export default function Profile() {
       return;
     }
 
-    // Giao diện phía client: phần lưu mật khẩu thực tế nên được xử lý
-    // bằng API backend nếu dự án đã có endpoint đổi mật khẩu.
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setMessage("Đã kiểm tra thông tin. Hãy kết nối form này với API đổi mật khẩu của backend.");
+    try {
+      const { data } = await api.patch("/auth/change-password", {
+        currentPassword, newPassword
+      });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setMessage(data.message || "Đổi mật khẩu thành công.");
+    } catch (err) {
+      setError(err.response?.data?.message || "Không thể đổi mật khẩu lúc này.");
+    }
   };
 
   return (
@@ -85,6 +86,13 @@ export default function Profile() {
         </div>
         <div className="profile-heading-badge">✓ Tài khoản đang hoạt động</div>
       </div>
+
+      {user?.role === "customer" && (
+        <div className="profile-message success" style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+          <span>📅 Bạn muốn xem lịch đã đặt và lịch đã xác nhận?</span>
+          <a href="/my-bookings" className="profile-primary-btn" style={{ textDecoration: "none", whiteSpace: "nowrap" }}>Xem lịch của tôi</a>
+        </div>
+      )}
 
       <div className="profile-layout">
         {/* Bên trái: thông tin tài khoản */}

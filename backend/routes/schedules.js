@@ -13,7 +13,7 @@ router.get("/", auth, async (req, res) => {
 });
 
 // Tạo các khung giờ phù hợp với tổng thời lượng của nhiều dịch vụ.
-router.get("/slots", auth, async (req, res) => {
+router.get("/slots", async (req, res) => {
   try {
     const { services, service, employee, date } = req.query;
 

@@ -50,6 +50,9 @@ export default function MyBookings() {
 
   useEffect(() => {
     loadBookings();
+    // Tự đồng bộ trạng thái để khách thấy ngay khi quản trị viên xác nhận lịch.
+    const timer = window.setInterval(loadBookings, 15000);
+    return () => window.clearInterval(timer);
   }, []);
 
   async function cancel(id) {
@@ -70,6 +73,7 @@ export default function MyBookings() {
 
   const stats = useMemo(() => {
     const validBookings = list.filter((item) => item.status !== "cancelled");
+    const confirmedBookings = list.filter((item) => item.status === "confirmed");
     const completedBookings = list.filter((item) => item.status === "completed");
     const totalBooked = validBookings.reduce((sum, item) => sum + getBookingTotal(item), 0);
     const totalSpent = completedBookings.reduce((sum, item) => sum + getBookingTotal(item), 0);
@@ -80,6 +84,7 @@ export default function MyBookings() {
 
     return {
       bookings: validBookings.length,
+      confirmed: confirmedBookings.length,
       completed: completedBookings.length,
       totalBooked,
       totalSpent,
@@ -99,6 +104,12 @@ export default function MyBookings() {
       </header>
 
       {message && <div className="error">{message}</div>}
+
+      {stats.confirmed > 0 && (
+        <div className="profile-message success" style={{ marginBottom: 20 }}>
+          ✓ Bạn có <strong>{stats.confirmed} lịch đã được xác nhận</strong>. Xem ngày, giờ và nhân viên ngay bên dưới.
+        </div>
+      )}
 
       <section className="booking-summary">
         <div className="summary-card">
@@ -124,9 +135,9 @@ export default function MyBookings() {
           <div className="panel-title-row">
             <div>
               <h2>📋 Danh sách lịch hẹn</h2>
-              <p>Xem chi tiết và hủy lịch khi cần.</p>
+              <p>Lịch sẽ tự cập nhật khi quản trị viên xác nhận hoặc thay đổi trạng thái.</p>
             </div>
-            <div className="booking-count">{list.length} lịch</div>
+            <div className="booking-count">{stats.confirmed} đã xác nhận</div>
           </div>
 
           {!list.length ? (
