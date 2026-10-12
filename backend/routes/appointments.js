@@ -72,8 +72,10 @@ router.get("/admin/all", auth, role("admin"), async (req, res) => {
 router.post("/", optionalAuth, async (req, res) => {
   try {
     const { employee, date, time, note, paymentMethod } = req.body;
-    const customerName = String(req.body.name || "").trim();
-    const phone = String(req.body.phone || "").trim();
+    // Chấp nhận cả tên trường customerName/customerPhone và name/phone
+    // để tránh lỗi khi frontend và backend đang dùng các phiên bản khác nhau.
+    const customerName = String(req.body.customerName ?? req.body.name ?? "").trim();
+    const phone = String(req.body.customerPhone ?? req.body.phone ?? "").trim();
     const serviceIds = getServiceIds(req.body);
     const requestedSubServices = Array.isArray(req.body.selectedSubServices) ? req.body.selectedSubServices : [];
 

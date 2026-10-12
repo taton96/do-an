@@ -13,44 +13,36 @@ const SERVICE_SLUGS = {
 
 const SERVICE_META = {
   "cat-toc": {
-    kicker: "BOOKING CẮT TÓC",
+    
     title: "Đặt lịch Cắt tóc",
-    description: "Chọn gói cắt tóc phù hợp, số điện thoại, mục phụ, nhân viên và khung giờ bạn mong muốn.",
+    description: "Mái tóc không chỉ là diện mạo, mà là bản tuyên ngôn không lời về phong cách và cá tính của mỗi người. Một đường kéo tinh tế không đơn thuần là thu ngắn độ dài, mà là quá trình khai phá những đường nét đẹp nhất trên khuôn mặt bạn. Khi mái tóc tìm đúng phom dáng, đó cũng là lúc sự tự tin được đánh thức — sẵn sàng cùng bạn tỏa sáng trong từng khoảnh khắc.",
     image: "/images/services/cat-toc-3d.jpg",
     className: "booking-cat-toc"
   },
   "massage": {
-    kicker: "BOOKING MASSAGE",
+   
     title: "Đặt lịch Massage",
-    description: "Thư giãn với các lựa chọn massage phù hợp và đặt lịch theo thời gian thuận tiện.",
+    description: "Massage trị liệu là sự kết hợp hoàn hảo giữa y học cổ truyền và kỹ thuật chăm sóc sức khỏe hiện đại. Tập trung vào việc giải phóng các điểm tắc nghẽn, xoa dịu các bó cơ căng cứng do ngồi nhiều hoặc vận động mạnh, liệu trình giúp giảm đau nhức vai cổ gáy, cải thiện giấc ngủ và nâng cao chất lượng cuộc sống toàn diện.",
     image: "/images/services/massage-3d.jpg",
     className: "booking-massage"
   },
   "cham-soc-da": {
-    kicker: "BOOKING CHĂM SÓC DA",
+    
     title: "Đặt lịch Chăm sóc da",
-    description: "Chọn liệu trình chăm sóc da, mục phụ và nhân viên trước khi xác nhận lịch.",
+    description: "Đừng chờ đến khi làn da lên tiếng mới bắt đầu chăm sóc! Một quy trình chăm sóc da chuẩn y khoa sẽ giúp bạn làm sạch sâu, cấp ẩm tức thì và ngăn ngừa các dấu hiệu lão hóa sớm. Dù bạn cần một liệu trình phục hồi nhanh trước sự kiện quan trọng hay chăm sóc định kỳ hàng tuần, chúng tôi luôn có giải pháp tối ưu được cá nhân hóa cho riêng làn da của bạn.",
     image: "/images/services/cham-soc-da-3d.jpg",
     className: "booking-cham-soc-da"
   },
   "cham-soc-suc-khoe": {
-    kicker: "BOOKING CHĂM SÓC SỨC KHỎE",
+  
     title: "Đặt lịch Chăm sóc sức khỏe",
-    description: "Đặt lịch tư vấn và chăm sóc sức khỏe theo nhu cầu của bạn.",
+    description: "Lắng nghe cơ thể trước khi quá muộn! Giữa áp lực công việc và nhịp sống hiện đại, việc chủ động chăm sóc sức khỏe chính là khoản đầu tư thông minh nhất cho tương lai. Các liệu trình chăm sóc sức khỏe chủ động giúp thanh lọc cơ thể, giải tỏa căng thẳng thần kinh và tái tạo nguồn năng lượng sống nội tại. Hãy để cơ thể bạn được nghỉ ngơi, phục hồi và lấy lại sự dẻo dai tự nhiên mỗi ngày.",
     image: "/images/services/cham-soc-suc-khoe-3d.jpg",
     className: "booking-cham-soc-suc-khoe"
   }
 };
 
-const STEPS = [
-  "Chọn dịch vụ",
-  "Số điện thoại",
-  "Chọn mục phụ",
-  "Chọn nhân viên",
-  "Ngày / giờ",
-  "Thanh toán",
-  "Xác nhận"
-];
+const STEPS = ["Dịch vụ", "Nhân viên & thời gian", "Thông tin đặt lịch", "Thanh toán"];
 
 const normalizeService = (service) => ({
   ...service,
@@ -193,13 +185,12 @@ export default function Booking() {
     setMessage("");
 
     if (step === 0 && !selectedService) return setMessage("Vui lòng chọn một dịch vụ.");
-    if (step === 1 && !/^(0|\+84)[0-9\s.-]{8,14}$/.test(form.phone.trim())) {
-      return setMessage("Vui lòng nhập số điện thoại hợp lệ trước khi tiếp tục.");
-    }
-    if (step === 3 && !form.staffId) return setMessage("Vui lòng chọn nhân viên.");
-    if (step === 4 && (!form.date || !form.time)) return setMessage("Vui lòng chọn ngày và giờ.");
+    if (step === 1 && !form.staffId) return setMessage("Vui lòng chọn nhân viên.");
+    if (step === 1 && (!form.date || !form.time)) return setMessage("Vui lòng chọn ngày và giờ.");
+    if (step === 2 && !form.name.trim()) return setMessage("Vui lòng nhập họ tên.");
+    if (step === 2 && !/^(0|\+84)[0-9\s.-]{8,14}$/.test(form.phone.trim())) return setMessage("Vui lòng nhập số điện thoại hợp lệ.");
 
-    setStep(current => Math.min(current + 1, 5));
+    setStep(current => Math.min(current + 1, 3));
   };
 
   const back = () => {
@@ -211,12 +202,12 @@ export default function Booking() {
   async function confirmBooking() {
     if (!form.name.trim()) {
       setMessage("Vui lòng nhập họ tên.");
-      setStep(0);
+      setStep(2);
       return;
     }
     if (!/^(0|\+84)[0-9\s.-]{8,14}$/.test(form.phone.trim())) {
       setMessage("Vui lòng nhập số điện thoại hợp lệ.");
-      setStep(0);
+      setStep(2);
       return;
     }
     if (!selectedService || !form.staffId || !form.date || !form.time) {
@@ -228,9 +219,14 @@ export default function Booking() {
       setLoading(true);
       setMessage("");
 
+      const customerName = form.name.trim();
+      const customerPhone = form.phone.trim();
       const response = await api.post("/appointments", {
-        name: form.name.trim(),
-        phone: form.phone.trim(),
+        // Gửi cả tên trường mới và tên trường tương thích với API cũ.
+        name: customerName,
+        phone: customerPhone,
+        customerName,
+        customerPhone,
         services: [selectedService._id],
         employee: form.staffId,
         date: form.date,
@@ -245,7 +241,7 @@ export default function Booking() {
       setTemporaryPassword(response.data?.temporaryPassword || "");
       setAccountInfo(response.data?.auth?.user || null);
       if (response.data?.auth) setSession(response.data.auth);
-      setStep(6);
+      setStep(4);
     } catch (err) {
       setMessage(err.response?.data?.message || "Đặt lịch thất bại. Vui lòng thử lại.");
     } finally {
@@ -348,9 +344,9 @@ export default function Booking() {
                 </div>
               </div>
             )}
-            {step === 1 && (
+            {step === 2 && (
               <div className="wizard-section narrow-wizard">
-                <h2>2. Nhập số điện thoại</h2>
+                <h2>3. Thông tin người đặt</h2>
                 <p className="wizard-help">Nhập số điện thoại để cửa hàng có thể liên hệ xác nhận lịch đặt.</p>
                 <label className="big-input-label">Số điện thoại <span className="required-mark">*</span>
                   <input type="tel" name="phone" value={form.phone} onChange={change} placeholder="Ví dụ: 0901234567" inputMode="tel" autoComplete="tel" required />
@@ -365,10 +361,10 @@ export default function Booking() {
               </div>
             )}
 
-            {step === 2 && (
+            {step === 0 && (
 
               <div className="wizard-section">
-                <h2>3. Chọn mục phụ</h2>
+                <h2>Chọn dịch vụ phụ (không bắt buộc)</h2>
                 <p className="wizard-help">Bạn có thể chọn thêm các dịch vụ phụ thuộc {selectedService?.name}.</p>
                 <div className="subservice-list wizard-subservices service-specific-subservices">
                   {(selectedService?.subServices || []).map((sub, index) => {
@@ -387,9 +383,9 @@ export default function Booking() {
               </div>
             )}
 
-            {step === 3 && (
+            {step === 1 && (
               <div className="wizard-section">
-                <h2>4. Chọn nhân viên</h2>
+                <h2>Chọn nhân viên</h2>
                 <p className="wizard-help">Chọn nhân viên phục vụ cho {selectedService?.name}.</p>
                 <div className="staff-choice-grid">
                   {serviceStaff.length ? serviceStaff.map(employee => (
@@ -404,9 +400,9 @@ export default function Booking() {
               </div>
             )}
 
-            {step === 4 && (
+            {step === 1 && (
               <div className="wizard-section">
-                <h2>5. Chọn ngày và giờ</h2>
+                <h2>Chọn ngày và giờ</h2>
                 <p className="wizard-help">Chọn ngày và một khung giờ còn trống.</p>
                 <div className="date-time-grid">
                   <label>Ngày
@@ -424,9 +420,9 @@ export default function Booking() {
               </div>
             )}
 
-            {step === 5 && (
+            {step === 3 && (
               <div className="wizard-section">
-                <h2>6. Thanh toán</h2>
+                <h2>Thanh toán</h2>
                 <p className="wizard-help">Chọn phương thức thanh toán cho lịch {selectedService?.name}.</p>
                 <div className="payment-choice-grid">
                   <button type="button" className={`payment-card ${paymentMethod === "cash" ? "selected" : ""}`} onClick={() => setPaymentMethod("cash")}>
@@ -444,7 +440,7 @@ export default function Booking() {
               </div>
             )}
 
-            {step === 6 && (
+            {step === 4 && (
               <div className="wizard-confirmation">
                 <div className="confirm-icon">✓</div>
                 <span>ĐẶT LỊCH THÀNH CÔNG</span>
@@ -474,10 +470,10 @@ export default function Booking() {
               </div>
             )}
 
-            {step < 6 && (
+            {step < 4 && (
               <div className="wizard-actions">
                 <button type="button" className="outline-btn" onClick={back}>Quay lại</button>
-                {step < 5 ? (
+                {step < 3 ? (
                   <button type="button" className="btn" onClick={next}>Tiếp tục →</button>
                 ) : (
                   <button type="button" className="btn" onClick={confirmBooking} disabled={loading}>{loading ? "Đang xác nhận..." : "Xác nhận & đặt lịch"}</button>

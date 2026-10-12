@@ -1,6 +1,7 @@
 import {Routes,Route,Navigate} from "react-router-dom";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
+import About from "./pages/About";
 import Booking from "./pages/Booking";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -18,6 +19,7 @@ export default function App(){
  return <Routes>
   <Route element={<Layout/>}>
    <Route path="/" element={<Home/>}/>
+   <Route path="/about" element={<About/>}/>
    <Route path="/booking" element={<Booking/>}/>
    <Route path="/booking/:serviceSlug" element={<Booking/>}/>
    <Route path="/login" element={<Login/>}/>
@@ -31,7 +33,6 @@ export default function App(){
    <Route path="/admin/bookings" element={<Protected roles={["admin"]}><AdminBookings/></Protected>}/>
    <Route path="/admin/schedules" element={<Protected roles={["admin"]}><AdminSchedules/></Protected>}/>
    <Route path="/admin/customers" element={<Protected roles={["admin"]}><AdminCustomers/></Protected>}/>
-   <Route path="/admin/reviews" element={<Protected roles={["admin"]}><Reviews/></Protected>}/>
    <Route path="*" element={<Navigate to="/" replace/>}/>
   </Route>
  </Routes>

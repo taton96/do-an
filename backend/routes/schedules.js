@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const WorkSchedule = require("../models/WorkSchedule");
 const Holiday = require("../models/Holiday");
+const EmployeeLeave = require("../models/EmployeeLeave");
 const Service = require("../models/Service");
 const Appointment = require("../models/Appointment");
 const { auth, role } = require("../middleware/auth");
@@ -8,7 +9,8 @@ const { auth, role } = require("../middleware/auth");
 router.get("/", auth, async (req, res) => {
   res.json({
     schedules: await WorkSchedule.find().populate("employee", "name"),
-    holidays: await Holiday.find().sort({ date: 1 })
+    holidays: await Holiday.find().sort({ date: 1 }),
+    leaves: await EmployeeLeave.find().populate("employee", "name email").sort({ date: 1 })
   });
 });
 
@@ -44,6 +46,10 @@ router.get("/slots", async (req, res) => {
     if (!duration) return res.json([]);
 
     const dayOfWeek = new Date(`${date}T00:00:00`).getDay();
+
+    // Nhân viên đã được xếp nghỉ trong ngày thì không hiển thị khung giờ.
+    const leave = await EmployeeLeave.findOne({ employee, date });
+    if (leave) return res.json([]);
 
     // Ưu tiên ca được xếp đúng ngày; nếu chưa có thì dùng ca lặp theo thứ.
     const schedule = await WorkSchedule.findOne({
@@ -117,6 +123,12 @@ router.post("/work", auth, role("admin"), async (req, res) => {
     if (!date && (dayOfWeek === undefined || dayOfWeek === null)) {
       return res.status(400).json({ message: "Vui lòng chọn ngày cụ thể hoặc thứ trong tuần." });
     }
+    if (startTime >= endTime) {
+      return res.status(400).json({ message: "Giờ kết thúc phải sau giờ bắt đầu." });
+    }
+    if (date && await EmployeeLeave.findOne({ employee, date })) {
+      return res.status(400).json({ message: "Nhân viên đã được xếp nghỉ ngày này, hãy xóa ngày nghỉ trước khi xếp ca." });
+    }
     const schedule = await WorkSchedule.create({ employee, date: date || undefined, dayOfWeek: date ? new Date(`${date}T00:00:00`).getDay() : dayOfWeek, startTime, endTime, active: true });
     res.status(201).json(await schedule.populate("employee", "name email"));
   } catch (e) {
@@ -127,6 +139,30 @@ router.post("/work", auth, role("admin"), async (req, res) => {
 router.delete("/work/:id", auth, role("admin"), async (req, res) => {
   await WorkSchedule.findByIdAndDelete(req.params.id);
   res.json({ message: "Đã xóa ca làm." });
+});
+
+router.post("/leave", auth, role("admin"), async (req, res) => {
+  try {
+    const { employee, date, reason, note } = req.body;
+    if (!employee || !date) {
+      return res.status(400).json({ message: "Vui lòng chọn nhân viên và ngày nghỉ." });
+    }
+    const hasAppointment = await Appointment.findOne({
+      employee, date, status: { $in: ["pending", "confirmed"] }
+    });
+    if (hasAppointment) {
+      return res.status(409).json({ message: "Nhân viên có lịch hẹn đang chờ/xác nhận trong ngày này. Hãy xử lý lịch hẹn trước khi xếp nghỉ." });
+    }
+    const leave = await EmployeeLeave.create({ employee, date, reason: reason || "Nghỉ theo lịch", note: note || "" });
+    res.status(201).json(await leave.populate("employee", "name email"));
+  } catch (e) {
+    res.status(400).json({ message: e.code === 11000 ? "Nhân viên đã có lịch nghỉ trong ngày này." : e.message });
+  }
+});
+
+router.delete("/leave/:id", auth, role("admin"), async (req, res) => {
+  await EmployeeLeave.findByIdAndDelete(req.params.id);
+  res.json({ message: "Đã xóa lịch nghỉ." });
 });
 
 router.post("/holiday", auth, role("admin"), async (req, res) =>

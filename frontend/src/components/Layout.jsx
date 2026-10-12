@@ -28,6 +28,8 @@ export default function Layout() {
 
           <nav className="premium-nav">
             <Link className={active("/")} to="/">Trang chủ</Link>
+            <Link className={active("/about")} to="/about">Giới thiệu</Link>
+            <Link className={active("/booking")} to="/booking">Đặt lịch</Link>
             {user?.role === "customer" && (
               <Link className={active("/my-bookings")} to="/my-bookings">Lịch của tôi</Link>
             )}

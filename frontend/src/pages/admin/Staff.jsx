@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { initialStaff, getData, saveData } from "../../data";
 
 export default function Staff() {
@@ -27,7 +28,18 @@ export default function Staff() {
 
   return (
     <main className="container page">
-      <h1>Quản lý nhân viên</h1>
+      <div className="section-title">
+        <div>
+          <h1>Quản lý nhân viên</h1>
+          <p style={{ color: "#64748b", marginTop: 6 }}>Quản lý hồ sơ nhân viên, phân ca làm và sắp xếp ngày nghỉ.</p>
+        </div>
+        <Link to="/admin/schedules" className="btn staff-shifts-link">Quản lý ca làm & lịch nghỉ →</Link>
+      </div>
+
+      <div className="staff-management-shortcuts">
+        <div><span className="staff-shortcut-icon">◷</span><div><strong>Quản lý ca làm</strong><p>Thiết lập ngày làm và giờ bắt đầu/kết thúc cho từng nhân viên.</p></div><Link to="/admin/schedules">Xếp ca →</Link></div>
+        <div><span className="staff-shortcut-icon">☼</span><div><strong>Sắp xếp lịch nghỉ</strong><p>Đánh dấu ngày nghỉ để hệ thống không nhận lịch hẹn mới cho nhân viên.</p></div><Link to="/admin/schedules">Lên lịch nghỉ →</Link></div>
+      </div>
 
       <div className="adminform">
         <form onSubmit={save}>
