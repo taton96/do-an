@@ -1,18 +1,389 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../../api";
-const labels = { pending: "Chờ xác nhận", confirmed: "Đã xác nhận", completed: "Hoàn thành", cancelled: "Đã hủy" };
-const money = v => `${Number(v || 0).toLocaleString("vi-VN")} đ`;
-const total = b => (b.services?.length ? b.services : [b.service]).filter(Boolean).reduce((s, x) => s + Number(x.price || 0), 0) + (b.selectedSubServices || []).reduce((s, x) => s + Number(x.price || 0), 0);
-export default function Bookings() {
-    const [list, setList] = useState([]), [staff, setStaff] = useState([]), [filter, setFilter] = useState("pending"), [message, setMessage] = useState("");
-    const load = async () => { try { const [a, e] = await Promise.all([api.get("/appointments/admin/all"), api.get("/employees")]); setList(Array.isArray(a.data) ? a.data : []); setStaff(Array.isArray(e.data) ? e.data : []); setMessage("") } catch (err) { setMessage(err.response?.data?.message || "Không tải được lịch hẹn.") } };
-    useEffect(() => { load(); const t = setInterval(load, 5000); return () => clearInterval(t) }, []);
-    const assign = async (id, employee) => { try { if (!employee) return setMessage("Vui lòng chọn nhân viên."); await api.put(`/appointments/${id}/assign`, { employee }); await load(); setMessage("Đã xếp nhân viên thành công.") } catch (e) { setMessage(e.response?.data?.message || "Không thể xếp nhân viên.") } };
-    const status = async (id, value) => { try { let reason = ""; if (value === "cancelled") { reason = window.prompt("Lý do hủy đơn (có thể để trống):", "") ?? "" } await api.put(`/appointments/${id}/status`, { status: value, cancellationReason: reason }); await load(); setMessage(value === "cancelled" ? "Đã hủy đơn thành công." : "Đã cập nhật trạng thái.") } catch (e) { setMessage(e.response?.data?.message || "Không thể đổi trạng thái.") } };
-    const filtered = useMemo(() => filter === "all" ? list : list.filter(x => x.status === filter), [list, filter]);
-    const counts = { pending: list.filter(x => x.status === "pending").length, confirmed: list.filter(x => x.status === "confirmed").length, completed: list.filter(x => x.status === "completed").length, cancelled: list.filter(x => x.status === "cancelled").length };
-    return <main className="container page admin-bookings-page"><div className="page-title-row"><div><span className="section-kicker">ĐƠN HÀNG</span><h1>Quản lý đơn / lịch hẹn</h1><p className="muted">Theo dõi lịch hẹn, phân công nhân viên và cập nhật trạng thái đơn hàng.</p></div><button className="outline-btn" onClick={load}>↻ Làm mới</button></div>
-        {message && <div className="error">{message}</div>}
-        <div className="booking-filters">{Object.entries({ pending: "Chờ xác nhận", confirmed: "Đã xác nhận", completed: "Hoàn thành", cancelled: "Đã hủy" }).map(([key, label]) => <button key={key} className={filter === key ? "active" : ""} onClick={() => setFilter(key)}>{label} <b>{counts[key]}</b></button>)}</div>
-        <div className="tablewrap"><table><thead><tr><th>Khách hàng</th><th>Dịch vụ</th><th>Ngày / giờ</th><th>Nhân viên</th><th>Giá trị</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>{filtered.length ? filtered.map(b => <tr key={b._id}><td><strong>{b.customer?.name || b.customerName}</strong><br /><small>{b.customerPhone || b.customer?.phone || "—"}</small></td><td>{(b.services?.length ? b.services : [b.service]).filter(Boolean).map(x => x.name).join(" + ")}</td><td>{b.date}<br />{b.time}</td><td><select value={b.employee?._id || ""} onChange={e => assign(b._id, e.target.value)} disabled={b.status === "cancelled"}><option value="">-- Chọn --</option>{staff.map(e => <option key={e._id} value={e._id}>{e.name}</option>)}</select></td><td><strong>{money(total(b))}</strong></td><td><select value={b.status} onChange={e => status(b._id, e.target.value)}><option value="pending">{labels.pending}</option><option value="confirmed">{labels.confirmed}</option><option value="completed">{labels.completed}</option><option value="cancelled">{labels.cancelled}</option></select>{b.status === "cancelled" && <small className="cancel-note">{b.cancellationReason || "Không ghi lý do"}</small>}</td><td>{b.status !== "cancelled" && b.status !== "completed" ? <button className="danger" onClick={() => status(b._id, "cancelled")}>Hủy đơn</button> : b.status === "cancelled" ? <button className="outline-btn small-btn" onClick={() => status(b._id, "pending")}>Mở lại đơn</button> : <span className="muted">Đã hoàn thành</span>}</td></tr>) : <tr><td colSpan="7" style={{ textAlign: "center" }}>Không có đơn phù hợp.</td></tr>}</tbody></table></div></main>
+
+const money = (value) =>
+  `${Number(value || 0).toLocaleString("vi-VN")} đ`;
+
+const getServiceList = (appointment) => {
+  if (appointment.services?.length) {
+    return appointment.services;
+  }
+
+  return appointment.service ? [appointment.service] : [];
+};
+
+const getAppointmentTotal = (appointment) => {
+  const serviceTotal = getServiceList(appointment).reduce(
+    (total, service) => total + Number(service.price || 0),
+    0
+  );
+
+  const subServiceTotal = (appointment.selectedSubServices || []).reduce(
+    (total, service) => total + Number(service.price || 0),
+    0
+  );
+
+  return serviceTotal + subServiceTotal;
+};
+
+const getStatusLabel = (status) => {
+  const statuses = {
+    pending: "Chờ xác nhận",
+    confirmed: "Đã xác nhận",
+    completed: "Hoàn thành",
+    cancelled: "Đã hủy",
+  };
+
+  return statuses[status] || status || "Không xác định";
+};
+
+export default function Customers() {
+  const [list, setList] = useState([]);
+  const [query, setQuery] = useState("");
+  const [message, setMessage] = useState("");
+  const [detail, setDetail] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  // Tải danh sách khách hàng
+  const loadCustomers = useCallback(async () => {
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const response = await api.get("/customers");
+
+      setList(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      setMessage(
+        error.response?.data?.message ||
+          "Không thể tải danh sách khách hàng."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCustomers();
+  }, [loadCustomers]);
+
+  // Tìm kiếm theo tên, email hoặc số điện thoại
+  const filteredCustomers = useMemo(() => {
+    const keyword = query.trim().toLowerCase();
+
+    if (!keyword) return list;
+
+    return list.filter((customer) =>
+      [
+        customer.name,
+        customer.email,
+        customer.phone,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(keyword)
+    );
+  }, [list, query]);
+
+  // Xem chi tiết khách hàng
+  const showDetail = async (customerId) => {
+    setDetailLoading(true);
+    setMessage("");
+
+    try {
+      const response = await api.get(`/customers/${customerId}`);
+      setDetail(response.data);
+    } catch (error) {
+      setMessage(
+        error.response?.data?.message ||
+          "Không thể tải thông tin doanh số khách hàng."
+      );
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const closeDetail = () => {
+    setDetail(null);
+  };
+
+  return (
+    <main className="container page customers-page">
+      {/* Tiêu đề */}
+      <div className="page-title-row">
+        <div>
+          <span className="section-kicker">CRM</span>
+          <h1>Quản lý khách hàng</h1>
+          <p className="muted">
+            Theo dõi thông tin, lịch đặt, doanh thu và lịch sử
+            sử dụng dịch vụ của khách hàng.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="outline-btn"
+          onClick={loadCustomers}
+          disabled={loading}
+        >
+          {loading ? "Đang tải..." : "↻ Làm mới"}
+        </button>
+      </div>
+
+      {/* Thông báo lỗi */}
+      {message && (
+        <div className="error" role="alert">
+          {message}
+        </div>
+      )}
+
+      {/* Tìm kiếm */}
+      <div className="customer-toolbar">
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Tìm theo tên, email hoặc số điện thoại..."
+          aria-label="Tìm kiếm khách hàng"
+        />
+
+        <strong>
+          {filteredCustomers.length} khách hàng
+        </strong>
+      </div>
+
+      {/* Danh sách khách hàng */}
+      <div className="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Khách hàng</th>
+              <th>Thông tin liên hệ</th>
+              <th>Lịch đặt</th>
+              <th>Doanh thu hoàn thành</th>
+              <th>Đơn đã hủy</th>
+              <th>Đánh giá</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {loading && list.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="table-empty">
+                  Đang tải danh sách khách hàng...
+                </td>
+              </tr>
+            ) : filteredCustomers.length > 0 ? (
+              filteredCustomers.map((customer) => (
+                <tr key={customer._id}>
+                  <td>
+                    <strong>
+                      {customer.name || "Khách hàng"}
+                    </strong>
+                  </td>
+
+                  <td>
+                    <div>{customer.phone || "Chưa có số điện thoại"}</div>
+                    <small>{customer.email || "Chưa có email"}</small>
+                  </td>
+
+                  <td>{customer.bookingCount ?? 0}</td>
+
+                  <td>
+                    <strong>{money(customer.spent)}</strong>
+                  </td>
+
+                  <td>{customer.cancelledCount ?? 0}</td>
+
+                  <td>{customer.reviewCount ?? 0} lượt</td>
+
+                  <td>
+                    <button
+                      type="button"
+                      className="outline-btn small-btn"
+                      onClick={() => showDetail(customer._id)}
+                      disabled={detailLoading}
+                    >
+                      Xem chi tiết
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={7} className="table-empty">
+                  {query
+                    ? "Không tìm thấy khách hàng phù hợp."
+                    : "Chưa có khách hàng nào."}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Chi tiết khách hàng */}
+      {detail && (
+        <div
+          className="detail-overlay"
+          onClick={closeDetail}
+        >
+          <section
+            className="customer-detail panel-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="customer-detail-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="page-title-row">
+              <div>
+                <span className="section-kicker">
+                  CHI TIẾT KHÁCH HÀNG
+                </span>
+
+                <h2 id="customer-detail-title">
+                  {detail.customer?.name || "Khách hàng"}
+                </h2>
+
+                <p className="muted">
+                  {detail.customer?.phone || "Chưa có số điện thoại"}
+                  {" · "}
+                  {detail.customer?.email || "Chưa có email"}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="outline-btn"
+                onClick={closeDetail}
+              >
+                Đóng
+              </button>
+            </div>
+
+            {detailLoading ? (
+              <p>Đang tải thông tin khách hàng...</p>
+            ) : (
+              <>
+                {/* Thống kê */}
+                <div className="analytics-grid compact">
+                  <div className="summary-card">
+                    <span>Doanh thu hoàn thành</span>
+                    <strong>
+                      {money(detail.stats?.revenue)}
+                    </strong>
+                  </div>
+
+                  <div className="summary-card">
+                    <span>Giá trị đơn chưa hủy</span>
+                    <strong>
+                      {money(detail.stats?.bookedValue)}
+                    </strong>
+                  </div>
+
+                  <div className="summary-card">
+                    <span>Đơn hoàn thành</span>
+                    <strong>
+                      {detail.stats?.completedCount ?? 0}
+                    </strong>
+                  </div>
+
+                  <div className="summary-card">
+                    <span>Đơn đã hủy</span>
+                    <strong>
+                      {detail.stats?.cancelledCount ?? 0}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* Lịch sử đặt lịch */}
+                <h3>Lịch sử đặt lịch</h3>
+
+                <div className="tablewrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Ngày giờ</th>
+                        <th>Dịch vụ</th>
+                        <th>Nhân viên</th>
+                        <th>Tổng tiền</th>
+                        <th>Trạng thái</th>
+                        <th>Lý do hủy</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {detail.appointments?.length > 0 ? (
+                        detail.appointments.map((appointment) => (
+                          <tr key={appointment._id}>
+                            <td>
+                              {appointment.date || "—"}
+                              <br />
+                              <small>
+                                {appointment.time || ""}
+                              </small>
+                            </td>
+
+                            <td>
+                              {getServiceList(appointment)
+                                .map((service) => service.name)
+                                .filter(Boolean)
+                                .concat(
+                                  (appointment.selectedSubServices || [])
+                                    .map((service) => service.name)
+                                    .filter(Boolean)
+                                )
+                                .join(" + ") || "—"}
+                            </td>
+
+                            <td>
+                              {appointment.employee?.name || "—"}
+                            </td>
+
+                            <td>
+                              <strong>
+                                {money(getAppointmentTotal(appointment))}
+                              </strong>
+                            </td>
+
+                            <td>
+                              <span
+                                className={`status ${appointment.status || ""}`}
+                              >
+                                {getStatusLabel(appointment.status)}
+                              </span>
+                            </td>
+
+                            <td>
+                              {appointment.cancellationReason || "—"}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="table-empty">
+                            Khách hàng chưa có lịch đặt nào.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </section>
+        </div>
+      )}
+
+      {/* Trạng thái tải chi tiết */}
+      {detailLoading && (
+        <div className="loading-toast">
+          Đang tải thông tin khách hàng...
+        </div>
+      )}
+    </main>
+  );
 }

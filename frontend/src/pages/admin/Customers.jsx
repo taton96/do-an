@@ -1,20 +1,529 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../../api";
-const money = value => `${Number(value || 0).toLocaleString("vi-VN")} đ`;
 
-export default function Customers() {
-    const [list, setList] = useState([]), [q, setQ] = useState(""), [message, setMessage] = useState(""), [detail, setDetail] = useState(null), [loading, setLoading] = useState(false);
-    const load = async () => { try { setList((await api.get("/customers")).data); setMessage("") } catch (e) { setMessage(e.response?.data?.message || "Không tải được khách hàng.") } };
-    useEffect(() => { load() }, []);
-    const showDetail = async id => { try { setLoading(true); setDetail((await api.get(`/customers/${id}`)).data) } catch (e) { setMessage(e.response?.data?.message || "Không tải được doanh số khách hàng.") } finally { setLoading(false) } };
-    const filtered = list.filter(x => [x.name, x.email, x.phone].join(" ").toLowerCase().includes(q.toLowerCase()));
-    return <main className="container page"><div className="page-title-row"><div><span className="section-kicker">CRM</span><h1>Quản lý khách hàng</h1><p className="muted">Theo dõi số lượt đặt, doanh số/chi tiêu và đơn đã hủy của từng khách.</p></div><button className="outline-btn" onClick={load}>↻ Làm mới</button></div>
-        {message && <div className="error">{message}</div>}
-        <div className="customer-toolbar"><input value={q} onChange={e => setQ(e.target.value)} placeholder="Tìm theo tên, email hoặc số điện thoại..." /><strong>{filtered.length} khách hàng</strong></div>
-        <div className="tablewrap"><table><thead><tr><th>Khách hàng</th><th>Liên hệ</th><th>Lịch đặt</th><th>Doanh số đã hoàn thành</th><th>Đơn hủy</th><th>Đánh giá</th><th></th></tr></thead><tbody>{filtered.length ? filtered.map(c => <tr key={c._id}><td><strong>{c.name}</strong></td><td>{c.phone || "—"}<br /><small>{c.email}</small></td><td>{c.bookingCount}</td><td><strong>{money(c.spent)}</strong></td><td>{c.cancelledCount || 0}</td><td>{c.reviewCount} lượt</td><td><button className="outline-btn small-btn" onClick={() => showDetail(c._id)}>Xem doanh số</button></td></tr>) : <tr><td colSpan="7" style={{ textAlign: "center" }}>Không có khách hàng phù hợp.</td></tr>}</tbody></table></div>
-        {detail && <div className="detail-overlay" onClick={() => setDetail(null)}><section className="customer-detail panel-card" onClick={e => e.stopPropagation()}><div className="page-title-row"><div><span className="section-kicker">CHI TIẾT KHÁCH HÀNG</span><h2>{detail.customer.name}</h2><p className="muted">{detail.customer.phone || ""} · {detail.customer.email || ""}</p></div><button className="outline-btn" onClick={() => setDetail(null)}>Đóng</button></div>
-            <div className="analytics-grid compact"><div className="summary-card"><span>Doanh số đã hoàn thành</span><strong>{money(detail.stats.revenue)}</strong></div><div className="summary-card"><span>Giá trị đơn chưa hủy</span><strong>{money(detail.stats.bookedValue)}</strong></div><div className="summary-card"><span>Đơn hoàn thành</span><strong>{detail.stats.completedCount}</strong></div><div className="summary-card"><span>Đơn đã hủy</span><strong>{detail.stats.cancelledCount}</strong></div></div>
-            <h3>Lịch sử đơn hàng</h3><div className="tablewrap"><table><thead><tr><th>Ngày</th><th>Dịch vụ</th><th>Nhân viên</th><th>Tổng</th><th>Trạng thái</th><th>Lý do hủy</th></tr></thead><tbody>{detail.appointments.map(a => <tr key={a._id}><td>{a.date} {a.time}</td><td>{(a.services?.length ? a.services : [a.service]).filter(Boolean).map(s => s.name).join(" + ")}</td><td>{a.employee?.name || "—"}</td><td>{money((a.services?.length ? a.services : [a.service]).filter(Boolean).reduce((sum, s) => sum + Number(s.price || 0), 0) + (a.selectedSubServices || []).reduce((sum, s) => sum + Number(s.price || 0), 0))}</td><td><span className={`status ${a.status}`}>{a.status}</span></td><td>{a.cancellationReason || "—"}</td></tr>)}</tbody></table></div></section></div>}
-        {loading && <div className="loading-toast">Đang tải doanh số...</div>}
-    </main>
+const STATUS_LABELS = {
+    pending: "Chờ xác nhận",
+    confirmed: "Đã xác nhận",
+    completed: "Hoàn thành",
+    cancelled: "Đã hủy",
+};
+
+const FILTER_OPTIONS = [
+    { value: "all", label: "Tất cả" },
+    { value: "pending", label: "Chờ xác nhận" },
+    { value: "confirmed", label: "Đã xác nhận" },
+    { value: "completed", label: "Hoàn thành" },
+    { value: "cancelled", label: "Đã hủy" },
+];
+
+const formatMoney = (value) =>
+    `${Number(value || 0).toLocaleString("vi-VN")} đ`;
+
+const getServices = (booking) => {
+    if (booking.services?.length) {
+        return booking.services.filter(Boolean);
+    }
+
+    return booking.service ? [booking.service] : [];
+};
+
+const calculateTotal = (booking) => {
+    const servicesTotal = getServices(booking).reduce(
+        (sum, service) => sum + Number(service.price || 0),
+        0
+    );
+
+    const subServicesTotal = (
+        booking.selectedSubServices || []
+    ).reduce(
+        (sum, service) => sum + Number(service.price || 0),
+        0
+    );
+
+    return servicesTotal + subServicesTotal;
+};
+
+export default function Bookings() {
+    const [bookings, setBookings] = useState([]);
+    const [employees, setEmployees] = useState([]);
+    const [filter, setFilter] = useState("pending");
+    const [message, setMessage] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [processingId, setProcessingId] = useState("");
+
+    // Tải danh sách lịch hẹn và nhân viên
+    const loadData = useCallback(async (showLoading = false) => {
+        if (showLoading) setLoading(true);
+
+        try {
+            const [bookingResponse, employeeResponse] =
+                await Promise.all([
+                    api.get("/appointments/admin/all"),
+                    api.get("/employees"),
+                ]);
+
+            setBookings(
+                Array.isArray(bookingResponse.data)
+                    ? bookingResponse.data
+                    : []
+            );
+
+            setEmployees(
+                Array.isArray(employeeResponse.data)
+                    ? employeeResponse.data
+                    : []
+            );
+
+            setMessage("");
+        } catch (error) {
+            setMessage(
+                error.response?.data?.message ||
+                    "Không thể tải dữ liệu lịch hẹn."
+            );
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadData(true);
+
+        const timer = setInterval(() => {
+            loadData(false);
+        }, 5000);
+
+        return () => clearInterval(timer);
+    }, [loadData]);
+
+    // Đếm số đơn theo từng trạng thái
+    const counts = useMemo(() => {
+        const result = {
+            all: bookings.length,
+            pending: 0,
+            confirmed: 0,
+            completed: 0,
+            cancelled: 0,
+        };
+
+        bookings.forEach((booking) => {
+            if (Object.hasOwn(result, booking.status)) {
+                result[booking.status]++;
+            }
+        });
+
+        return result;
+    }, [bookings]);
+
+    // Lọc danh sách đơn hàng
+    const filteredBookings = useMemo(() => {
+        if (filter === "all") return bookings;
+
+        return bookings.filter(
+            (booking) => booking.status === filter
+        );
+    }, [bookings, filter]);
+
+    // Phân công nhân viên
+    const handleAssignEmployee = async (bookingId, employeeId) => {
+        if (!employeeId) {
+            setMessage("Vui lòng chọn nhân viên cần phân công.");
+            return;
+        }
+
+        try {
+            setProcessingId(bookingId);
+
+            await api.put(`/appointments/${bookingId}/assign`, {
+                employee: employeeId,
+            });
+
+            await loadData();
+            setMessage("Phân công nhân viên thành công.");
+        } catch (error) {
+            setMessage(
+                error.response?.data?.message ||
+                    "Không thể phân công nhân viên."
+            );
+        } finally {
+            setProcessingId("");
+        }
+    };
+
+    // Cập nhật trạng thái đơn hàng
+    const handleChangeStatus = async (bookingId, newStatus) => {
+        const booking = bookings.find(
+            (item) => item._id === bookingId
+        );
+
+        if (!booking || booking.status === newStatus) return;
+
+        let cancellationReason = "";
+
+        if (newStatus === "cancelled") {
+            const reason = window.prompt(
+                "Nhập lý do hủy đơn (có thể để trống):",
+                ""
+            );
+
+            // Nhấn Cancel trong hộp thoại thì không hủy đơn
+            if (reason === null) return;
+
+            cancellationReason = reason.trim();
+        }
+
+        const actionLabels = {
+            pending: "mở lại",
+            confirmed: "xác nhận",
+            completed: "hoàn thành",
+            cancelled: "hủy",
+        };
+
+        const confirmed = window.confirm(
+            `Bạn có chắc chắn muốn ${actionLabels[newStatus]} đơn này?`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            setProcessingId(bookingId);
+
+            await api.put(`/appointments/${bookingId}/status`, {
+                status: newStatus,
+                cancellationReason,
+            });
+
+            await loadData();
+
+            setMessage(
+                newStatus === "cancelled"
+                    ? "Đã hủy đơn thành công."
+                    : "Cập nhật trạng thái đơn thành công."
+            );
+        } catch (error) {
+            setMessage(
+                error.response?.data?.message ||
+                    "Không thể cập nhật trạng thái đơn."
+            );
+        } finally {
+            setProcessingId("");
+        }
+    };
+
+    return (
+        <main className="container page admin-bookings-page">
+            {/* Tiêu đề trang */}
+            <div className="page-title-row">
+                <div>
+                    <span className="section-kicker">
+                        QUẢN LÝ ĐẶT LỊCH
+                    </span>
+
+                    <h1>Quản lý đơn / lịch hẹn</h1>
+
+                    <p className="muted">
+                        Theo dõi lịch hẹn, phân công nhân viên,
+                        quản lý đơn hủy và cập nhật trạng thái.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    className="outline-btn"
+                    onClick={() => loadData(true)}
+                    disabled={loading}
+                >
+                    ↻ {loading ? "Đang tải..." : "Làm mới"}
+                </button>
+            </div>
+
+            {/* Thông báo */}
+            {message && (
+                <div
+                    className="booking-message"
+                    role="status"
+                >
+                    <span>{message}</span>
+
+                    <button
+                        type="button"
+                        onClick={() => setMessage("")}
+                        aria-label="Đóng thông báo"
+                    >
+                        ×
+                    </button>
+                </div>
+            )}
+
+            {/* Thống kê */}
+            <div className="booking-stats">
+                <div className="booking-stat">
+                    <span>Tổng số đơn</span>
+                    <strong>{counts.all}</strong>
+                </div>
+
+                <div className="booking-stat">
+                    <span>Chờ xác nhận</span>
+                    <strong>{counts.pending}</strong>
+                </div>
+
+                <div className="booking-stat">
+                    <span>Đã xác nhận</span>
+                    <strong>{counts.confirmed}</strong>
+                </div>
+
+                <div className="booking-stat">
+                    <span>Hoàn thành</span>
+                    <strong>{counts.completed}</strong>
+                </div>
+
+                <div className="booking-stat">
+                    <span>Đã hủy</span>
+                    <strong>{counts.cancelled}</strong>
+                </div>
+            </div>
+
+            {/* Bộ lọc */}
+            <div className="booking-filters">
+                {FILTER_OPTIONS.map((option) => (
+                    <button
+                        type="button"
+                        key={option.value}
+                        className={
+                            filter === option.value ? "active" : ""
+                        }
+                        onClick={() => setFilter(option.value)}
+                    >
+                        {option.label}
+                        <b>{counts[option.value]}</b>
+                    </button>
+                ))}
+            </div>
+
+            {/* Bảng lịch hẹn */}
+            <div className="tablewrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Khách hàng</th>
+                            <th>Dịch vụ</th>
+                            <th>Ngày / giờ</th>
+                            <th>Nhân viên</th>
+                            <th>Giá trị</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {loading && bookings.length === 0 ? (
+                            <tr>
+                                <td colSpan="7" className="table-empty">
+                                    Đang tải dữ liệu...
+                                </td>
+                            </tr>
+                        ) : filteredBookings.length > 0 ? (
+                            filteredBookings.map((booking) => {
+                                const services = getServices(booking);
+                                const isProcessing =
+                                    processingId === booking._id;
+
+                                return (
+                                    <tr key={booking._id}>
+                                        {/* Thông tin khách hàng */}
+                                        <td>
+                                            <strong>
+                                                {booking.customer?.name ||
+                                                    booking.customerName ||
+                                                    "Khách hàng"}
+                                            </strong>
+
+                                            <br />
+
+                                            <small>
+                                                {booking.customerPhone ||
+                                                    booking.customer?.phone ||
+                                                    "Chưa có số điện thoại"}
+                                            </small>
+                                        </td>
+
+                                        {/* Danh sách dịch vụ */}
+                                        <td>
+                                            {services.length > 0
+                                                ? services
+                                                      .map(
+                                                          (service) =>
+                                                              service.name
+                                                      )
+                                                      .join(" + ")
+                                                : "Chưa có dịch vụ"}
+
+                                            {booking.selectedSubServices
+                                                ?.length > 0 && (
+                                                <small className="sub-services">
+                                                    <br />
+                                                    Dịch vụ bổ sung:{" "}
+                                                    {booking.selectedSubServices
+                                                        .map(
+                                                            (service) =>
+                                                                service.name
+                                                        )
+                                                        .join(", ")}
+                                                </small>
+                                            )}
+                                        </td>
+
+                                        {/* Thời gian */}
+                                        <td>
+                                            <strong>
+                                                {booking.date || "—"}
+                                            </strong>
+
+                                            <br />
+
+                                            <small>
+                                                {booking.time || "—"}
+                                            </small>
+                                        </td>
+
+                                        {/* Phân công nhân viên */}
+                                        <td>
+                                            <select
+                                                aria-label="Phân công nhân viên"
+                                                value={
+                                                    booking.employee?._id ||
+                                                    booking.employee ||
+                                                    ""
+                                                }
+                                                onChange={(event) =>
+                                                    handleAssignEmployee(
+                                                        booking._id,
+                                                        event.target.value
+                                                    )
+                                                }
+                                                disabled={
+                                                    booking.status ===
+                                                        "cancelled" ||
+                                                    isProcessing
+                                                }
+                                            >
+                                                <option value="">
+                                                    -- Chọn nhân viên --
+                                                </option>
+
+                                                {employees.map((employee) => (
+                                                    <option
+                                                        key={employee._id}
+                                                        value={employee._id}
+                                                    >
+                                                        {employee.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </td>
+
+                                        {/* Tổng tiền */}
+                                        <td>
+                                            <strong className="booking-total">
+                                                {formatMoney(
+                                                    calculateTotal(booking)
+                                                )}
+                                            </strong>
+                                        </td>
+
+                                        {/* Trạng thái */}
+                                        <td>
+                                            <select
+                                                aria-label="Trạng thái đơn"
+                                                className={`status-select status-${booking.status}`}
+                                                value={booking.status}
+                                                onChange={(event) =>
+                                                    handleChangeStatus(
+                                                        booking._id,
+                                                        event.target.value
+                                                    )
+                                                }
+                                                disabled={isProcessing}
+                                            >
+                                                {Object.entries(
+                                                    STATUS_LABELS
+                                                ).map(([value, label]) => (
+                                                    <option
+                                                        key={value}
+                                                        value={value}
+                                                    >
+                                                        {label}
+                                                    </option>
+                                                ))}
+                                            </select>
+
+                                            {booking.status ===
+                                                "cancelled" && (
+                                                <small className="cancel-note">
+                                                    Lý do:{" "}
+                                                    {booking.cancellationReason ||
+                                                        "Không ghi lý do"}
+                                                </small>
+                                            )}
+                                        </td>
+
+                                        {/* Thao tác */}
+                                        <td>
+                                            {booking.status !== "cancelled" &&
+                                            booking.status !== "completed" ? (
+                                                <button
+                                                    type="button"
+                                                    className="danger"
+                                                    disabled={isProcessing}
+                                                    onClick={() =>
+                                                        handleChangeStatus(
+                                                            booking._id,
+                                                            "cancelled"
+                                                        )
+                                                    }
+                                                >
+                                                    Hủy đơn
+                                                </button>
+                                            ) : booking.status ===
+                                              "cancelled" ? (
+                                                <button
+                                                    type="button"
+                                                    className="outline-btn small-btn"
+                                                    disabled={isProcessing}
+                                                    onClick={() =>
+                                                        handleChangeStatus(
+                                                            booking._id,
+                                                            "pending"
+                                                        )
+                                                    }
+                                                >
+                                                    Mở lại đơn
+                                                </button>
+                                            ) : (
+                                                <span className="muted">
+                                                    Đã hoàn thành
+                                                </span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        ) : (
+                            <tr>
+                                <td
+                                    colSpan="7"
+                                    className="table-empty"
+                                >
+                                    Không có đơn đặt lịch phù hợp.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            <p className="booking-footer muted">
+                Danh sách tự động cập nhật sau mỗi 5 giây.
+            </p>
+        </main>
+    );
 }
