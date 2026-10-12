@@ -13,8 +13,6 @@ router.get("/", auth, async (req, res) => {
     leaves: await EmployeeLeave.find().populate("employee", "name email").sort({ date: 1 })
   });
 });
-
-// Tạo các khung giờ phù hợp với tổng thời lượng của nhiều dịch vụ.
 router.get("/slots", async (req, res) => {
   try {
     const { services, service, employee, date } = req.query;
