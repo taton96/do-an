@@ -21,7 +21,7 @@ export default function Services() {
       const { data } = await api.get("/services");
       setList(Array.isArray(data) ? data : []);
     } catch (err) {
-      setMessage(err.response?.data?.message || "Không thể tải dịch vụ.");
+      setMessage(err.response?.data?.message || "Unable to load dịch vụ.");
     }
   }
 
@@ -68,21 +68,21 @@ export default function Services() {
 
   return (
     <main className="container page">
-      <h1>Quản lý dịch vụ</h1>
+      <h1>Service Management</h1>
 
       {message && <div className="error">{message}</div>}
 
       <div className="adminform">
         <form onSubmit={save}>
           <input
-            placeholder="Tên dịch vụ"
+            placeholder="Service Name"
             value={f.name}
             onChange={e => setF({ ...f, name: e.target.value })}
             required
           />
 
           <input
-            placeholder="Mô tả"
+            placeholder="Description"
             value={f.description}
             onChange={e => setF({ ...f, description: e.target.value })}
           />
@@ -99,7 +99,7 @@ export default function Services() {
           <input
             type="number"
             min="0"
-            placeholder="Giá"
+            placeholder="Price"
             value={f.price}
             onChange={e => setF({ ...f, price: e.target.value })}
             required
@@ -125,7 +125,7 @@ export default function Services() {
                 setF(empty);
               }}
             >
-              Hủy
+              Cancel
             </button>
           )}
         </form>
@@ -137,8 +137,8 @@ export default function Services() {
             <tr>
               <th>Tên</th>
               <th>Thời lượng</th>
-              <th>Giá</th>
-              <th>Trạng thái</th>
+              <th>Price</th>
+              <th>Status</th>
               <th></th>
             </tr>
           </thead>
@@ -167,7 +167,7 @@ export default function Services() {
                     Sửa
                   </button>{" "}
                   <button className="danger" onClick={() => del(s._id)}>
-                    Xóa
+                    Delete
                   </button>
                 </td>
               </tr>

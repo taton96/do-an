@@ -22,22 +22,22 @@ export default function Layout() {
             <span className="premium-logo-mark">✦</span>
             <span className="premium-logo-text">
               <strong>BOOKING<span>+</span></strong>
-              <small>CHĂM SÓC TOÀN DIỆN</small>
+              <small>COMPLETE CARE</small>
             </span>
           </Link>
 
           <nav className="premium-nav">
-            <Link className={active("/")} to="/">Trang chủ</Link>
-            <Link className={active("/about")} to="/about">Giới thiệu</Link>
-            <Link className={active("/booking")} to="/booking">Đặt lịch</Link>
+            <Link className={active("/")} to="/">Home</Link>
+            <Link className={active("/about")} to="/about">About Us</Link>
+            <Link className={active("/booking")} to="/booking">Book Now</Link>
             {user?.role === "customer" && (
-              <Link className={active("/my-bookings")} to="/my-bookings">Lịch của tôi</Link>
+              <Link className={active("/my-bookings")} to="/my-bookings">My Bookings</Link>
             )}
             {user?.role === "employee" && (
-              <Link className={active("/staff")} to="/staff">Nhân viên</Link>
+              <Link className={active("/staff")} to="/staff">Staff</Link>
             )}
             {user?.role === "admin" && (
-              <Link className={active("/admin")} to="/admin">Quản trị</Link>
+              <Link className={active("/admin")} to="/admin">Admin</Link>
             )}
           </nav>
 
@@ -45,7 +45,7 @@ export default function Layout() {
             {!user ? (
               <>
                 <Link className="premium-login" to="/login">
-                  Đăng nhập
+                  Sign In
                 </Link>
 
               </>
@@ -56,13 +56,13 @@ export default function Layout() {
                     {(user.name || "U").charAt(0).toUpperCase()}
                   </span>
                   <span className="premium-user-info">
-                    <strong>{user.name || "Tài khoản"}</strong>
+                    <strong>{user.name || "Account"}</strong>
                     <small>
                       {user.role === "admin"
-                        ? "Quản trị viên"
+                        ? "Admin viên"
                         : user.role === "employee"
-                        ? "Nhân viên"
-                        : "Khách hàng"}
+                        ? "Staff"
+                        : "Customer"}
                     </small>
                   </span>
                 </Link>
@@ -71,8 +71,8 @@ export default function Layout() {
                   type="button"
                   className="premium-logout"
                   onClick={handleLogout}
-                  title="Đăng xuất"
-                  aria-label="Đăng xuất"
+                  title="Sign Out"
+                  aria-label="Sign Out"
                 >
                   ⇥
                 </button>
@@ -91,64 +91,64 @@ export default function Layout() {
               <span className="footer-logo-mark">✦</span>
               <div>
                 <strong>BOOKING<span>+</span></strong>
-                <small>CHĂM SÓC TOÀN DIỆN</small>
+                <small>COMPLETE CARE</small>
               </div>
             </div>
             <p className="footer-slogan">
-              Đặt lịch chăm sóc dễ dàng - Thư giãn trọn vẹn - Phục vụ chuyên nghiệp
+              Book Now chăm sóc dễ dàng - Thư giãn trọn vẹn - Phục vụ chuyên nghiệp
             </p>
           </div>
 
           <div className="footer-column">
-            <h4>VỀ CHÚNG TÔI</h4>
-            <Link to="/">Giới thiệu</Link>
-            <Link to="/booking">Dịch vụ của chúng tôi</Link>
-            <Link to="/booking">Đội ngũ nhân viên</Link>
-            <Link to="/profile">Tài khoản khách hàng</Link>
+            <h4>ABOUT US</h4>
+            <Link to="/">About Us</Link>
+            <Link to="/booking">Our Services</Link>
+            <Link to="/booking">Our Team</Link>
+            <Link to="/profile">Account khách hàng</Link>
           </div>
 
           <div className="footer-column">
-            <h4>DỊCH VỤ</h4>
-            <Link to="/booking/cat-toc">Cắt tóc</Link>
+            <h4>SERVICES</h4>
+            <Link to="/booking/cat-toc">Haircut</Link>
             <Link to="/booking/massage">Massage</Link>
-            <Link to="/booking/cham-soc-da">Chăm sóc da</Link>
-            <Link to="/booking/cham-soc-suc-khoe">Chăm sóc sức khỏe</Link>
+            <Link to="/booking/cham-soc-da">Skincare</Link>
+            <Link to="/booking/cham-soc-suc-khoe">Wellness</Link>
           </div>
 
           <div className="footer-column">
-            <h4>HỖ TRỢ</h4>
-            <Link to="/booking">Hướng dẫn đặt lịch</Link>
-            <Link to="/booking">Chọn dịch vụ & nhân viên</Link>
-            <Link to="/booking">Thanh toán</Link>
-            <Link to="/">Chính sách đặt lịch</Link>
+            <h4>SUPPORT</h4>
+            <Link to="/booking">Booking Guide</Link>
+            <Link to="/booking">Choose a Service & Staff</Link>
+            <Link to="/booking">Payment</Link>
+            <Link to="/">Booking Policy</Link>
           </div>
 
           <div className="footer-column footer-contact">
-            <h4>LIÊN HỆ</h4>
+            <h4>CONTACT</h4>
             <p><span>☎</span> Hotline: <strong>0123 456 789</strong></p>
             <p><span>✉</span> Email: support@booking.vn</p>
-            <p><span>⌖</span> Thời gian: 08:00 - 20:30</p>
-            <p><span>⌂</span> Phục vụ từ Thứ 2 - Chủ Nhật</p>
+            <p><span>⌖</span> Hours: 08:00 - 20:30</p>
+            <p><span>⌂</span> Open Monday - Sunday</p>
           </div>
         </div>
 
         <div className="footer-payment">
           <div>
-            <h4>PHƯƠNG THỨC THANH TOÁN</h4>
-            <p>Thanh toán tại cửa hàng hoặc quét mã QR khi đặt lịch</p>
+            <h4>PAYMENT METHODS</h4>
+            <p>Payment tại cửa hàng hoặc quét mã QR khi đặt lịch</p>
           </div>
           <div className="payment-list">
-            <span>💵 Tiền mặt</span>
+            <span>💵 Cash</span>
             <span>▣ QR Code</span>
-            <span>💳 Chuyển khoản</span>
+            <span>💳 Bank Transfer</span>
           </div>
         </div>
 
         <div className="footer-bottom">
-          <span>© 2026 BOOKING+ • Chăm sóc toàn diện</span>
+          <span>© 2026 BOOKING+ • Complete Care</span>
           <div>
-            <Link to="/">Điều khoản sử dụng</Link>
-            <Link to="/">Chính sách bảo mật</Link>
+            <Link to="/">Terms of Service</Link>
+            <Link to="/">Privacy Policy</Link>
           </div>
         </div>
       </footer>

@@ -30,10 +30,10 @@ export default function Staff() {
     <main className="container page">
       <div className="section-title">
         <div>
-          <h1>Quản lý nhân viên</h1>
+          <h1>Staff Management</h1>
           <p style={{ color: "#64748b", marginTop: 6 }}>Quản lý hồ sơ nhân viên, phân ca làm và sắp xếp ngày nghỉ.</p>
         </div>
-        <Link to="/admin/schedules" className="btn staff-shifts-link">Quản lý ca làm & lịch nghỉ →</Link>
+        <Link to="/admin/schedules" className="btn staff-shifts-link">Staff Schedules & Holidays →</Link>
       </div>
 
       <div className="staff-management-shortcuts">
@@ -50,7 +50,7 @@ export default function Staff() {
             required
           />
           <input
-            placeholder="Số điện thoại"
+            placeholder="Phone Number"
             value={f.phone}
             onChange={e => setF({ ...f, phone: e.target.value })}
           />
@@ -74,7 +74,7 @@ export default function Staff() {
               type="button"
               onClick={() => { setEdit(null); setF(empty); }}
             >
-              Hủy sửa
+              Cancel sửa
             </button>
           )}
         </form>
@@ -87,8 +87,8 @@ export default function Staff() {
               <th>Họ tên</th>
               <th>Điện thoại</th>
               <th>Chuyên môn</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -106,7 +106,7 @@ export default function Staff() {
                     Sửa
                   </button>{" "}
                   <button className="danger" type="button" onClick={() => del(s.id)}>
-                    Xóa
+                    Delete
                   </button>
                 </td>
               </tr>

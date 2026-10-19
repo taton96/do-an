@@ -3,10 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 const API_URL = "http://localhost:3000/api";
 
 const labels = {
-  pending: "Chờ xác nhận",
-  confirmed: "Đã xác nhận",
-  completed: "Hoàn thành",
-  cancelled: "Đã hủy",
+  pending: "Pending",
+  confirmed: "Confirmed",
+  completed: "Completed",
+  cancelled: "Cancelled",
 };
 
 const money = (value) => `${Number(value || 0).toLocaleString("vi-VN")} đ`;
@@ -41,7 +41,7 @@ export default function MyBookings() {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Không thể tải lịch đặt");
+      if (!response.ok) throw new Error(data.message || "Unable to load lịch đặt");
       setList(Array.isArray(data) ? data : []);
     } catch (error) {
       setMessage(error.message);
@@ -126,7 +126,7 @@ export default function MyBookings() {
         </div>
         <div className="summary-card">
           <div className="summary-icon orange">₫</div>
-          <div><span>Giá trị đặt lịch</span><strong>{money(stats.totalBooked)}</strong><small>Tổng các lịch chưa hủy</small></div>
+          <div><span>Price trị đặt lịch</span><strong>{money(stats.totalBooked)}</strong><small>Tổng các lịch chưa hủy</small></div>
         </div>
       </section>
 
@@ -171,8 +171,8 @@ export default function MyBookings() {
                     </div>
 
                     <div className="booking-details">
-                      <div><span>📅 Ngày</span><strong>{booking.date || "—"}</strong></div>
-                      <div><span>🕐 Giờ</span><strong>{booking.time || "—"}</strong></div>
+                      <div><span>📅 Date</span><strong>{booking.date || "—"}</strong></div>
+                      <div><span>🕐 Time</span><strong>{booking.time || "—"}</strong></div>
                       <div><span>👤 Nhân viên</span><strong>{booking.employee?.name || "Chưa phân công"}</strong></div>
                       <div>
                         <span>💳 Thanh toán</span>
@@ -185,12 +185,12 @@ export default function MyBookings() {
 
                     <div className="booking-card-footer">
                       <div>
-                        <span>Tổng tiền</span>
+                        <span>Total</span>
                         <strong>{money(getBookingTotal(booking))}</strong>
                       </div>
                       {canCancel && (
                         <button className="danger booking-cancel" onClick={() => cancel(booking._id)}>
-                          Hủy lịch
+                          Cancel lịch
                         </button>
                       )}
                     </div>
@@ -220,12 +220,12 @@ export default function MyBookings() {
             <div className="stat-item"><span>Lịch đã đặt</span><strong>{stats.bookings}</strong></div>
             <div className="stat-item"><span>Đã hoàn thành</span><strong>{stats.completed}</strong></div>
             <div className="stat-item"><span>Dịch vụ</span><strong>{stats.totalServices}</strong></div>
-            <div className="stat-item"><span>Giá trị đặt</span><strong>{money(stats.totalBooked)}</strong></div>
+            <div className="stat-item"><span>Price trị đặt</span><strong>{money(stats.totalBooked)}</strong></div>
           </div>
 
           <div className="spending-note">
-            <b>💡 Lưu ý</b>
-            <p>Lịch đã hủy không được tính vào tổng chi tiêu. “Đã sử dụng” chỉ tính lịch có trạng thái <strong>Hoàn thành</strong>.</p>
+            <b>💡 Save ý</b>
+            <p>Lịch đã hủy không được tính vào tổng chi tiêu. “Đã sử dụng” chỉ tính lịch có trạng thái <strong>Completed</strong>.</p>
           </div>
         </aside>
       </div>

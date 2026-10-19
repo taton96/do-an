@@ -51,7 +51,7 @@ export default function Schedules() {
   };
 
   const remove = async (id, type) => {
-    if (!window.confirm(type === "leave" ? "Xóa lịch nghỉ này?" : "Xóa ca làm này?")) return;
+    if (!window.confirm(type === "leave" ? "Delete lịch nghỉ này?" : "Delete ca làm này?")) return;
     try {
       await api.delete(type === "leave" ? `/schedules/leave/${id}` : `/schedules/work/${id}`);
       setError(false); setMessage(type === "leave" ? "Đã xóa lịch nghỉ." : "Đã xóa ca làm.");
@@ -70,7 +70,7 @@ export default function Schedules() {
       <div className="stats staff-schedule-stats">
         <div><b>{staff.length}</b><span>Nhân viên</span></div>
         <div><b>{schedules.length}</b><span>Ca làm đã xếp</span></div>
-        <div><b>{leaves.length}</b><span>Ngày nghỉ đã xếp</span></div>
+        <div><b>{leaves.length}</b><span>Date nghỉ đã xếp</span></div>
       </div>
 
       <div className="split staff-schedule-forms">
@@ -80,41 +80,41 @@ export default function Schedules() {
           <p className="hint">Chọn nhân viên, ngày làm và giờ bắt đầu/kết thúc.</p>
           <form onSubmit={addShift}>
             <label>Nhân viên<select required value={f.employee} onChange={e => setF({ ...f, employee: e.target.value })}><option value="">Chọn nhân viên</option>{staff.map(x => <option key={x._id} value={x._id}>{x.name}</option>)}</select></label>
-            <label>Ngày làm<input type="date" required min={today} value={f.date} onChange={e => setF({ ...f, date: e.target.value })}/></label>
+            <label>Date làm<input type="date" required min={today} value={f.date} onChange={e => setF({ ...f, date: e.target.value })}/></label>
             <div className="split schedule-time-fields">
-              <label>Giờ bắt đầu<input type="time" required value={f.startTime} onChange={e => setF({ ...f, startTime: e.target.value })}/></label>
-              <label>Giờ kết thúc<input type="time" required value={f.endTime} onChange={e => setF({ ...f, endTime: e.target.value })}/></label>
+              <label>Time bắt đầu<input type="time" required value={f.startTime} onChange={e => setF({ ...f, startTime: e.target.value })}/></label>
+              <label>Time kết thúc<input type="time" required value={f.endTime} onChange={e => setF({ ...f, endTime: e.target.value })}/></label>
             </div>
-            <button className="btn" type="submit">＋ Lưu ca làm</button>
+            <button className="btn" type="submit">＋ Save ca làm</button>
           </form>
         </section>
 
         <section className="formbox">
           <span className="schedule-kicker">02 · NGÀY NGHỈ</span>
           <h2>Sắp xếp lịch nghỉ</h2>
-          <p className="hint">Ngày nghỉ sẽ không hiển thị khung giờ đặt lịch cho nhân viên đó.</p>
+          <p className="hint">Date nghỉ sẽ không hiển thị khung giờ đặt lịch cho nhân viên đó.</p>
           <form onSubmit={addLeave}>
             <label>Nhân viên<select required value={leaveForm.employee} onChange={e => setLeaveForm({ ...leaveForm, employee: e.target.value })}><option value="">Chọn nhân viên</option>{staff.map(x => <option key={x._id} value={x._id}>{x.name}</option>)}</select></label>
-            <label>Ngày nghỉ<input type="date" required min={today} value={leaveForm.date} onChange={e => setLeaveForm({ ...leaveForm, date: e.target.value })}/></label>
+            <label>Date nghỉ<input type="date" required min={today} value={leaveForm.date} onChange={e => setLeaveForm({ ...leaveForm, date: e.target.value })}/></label>
             <label>Lý do nghỉ<select value={leaveForm.reason} onChange={e => setLeaveForm({ ...leaveForm, reason: e.target.value })}><option>Nghỉ phép</option><option>Nghỉ cá nhân</option><option>Nghỉ ốm</option><option>Đào tạo</option><option>Lý do khác</option></select></label>
             <label>Ghi chú (không bắt buộc)<textarea rows="2" value={leaveForm.note} onChange={e => setLeaveForm({ ...leaveForm, note: e.target.value })} placeholder="Ví dụ: nghỉ buổi sáng, có thể liên hệ quản lý..."/></label>
-            <button className="btn" type="submit">＋ Lưu ngày nghỉ</button>
+            <button className="btn" type="submit">＋ Save ngày nghỉ</button>
           </form>
         </section>
       </div>
 
       <section className="staff-schedule-list">
         <div className="section-title"><div><h2>Ca làm đã xếp</h2><p className="hint">Các ca làm cụ thể đang được lưu trên hệ thống.</p></div></div>
-        <div className="tablewrap"><table><thead><tr><th>Nhân viên</th><th>Ngày</th><th>Khung giờ</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
-          {schedules.map(x => <tr key={x._id}><td><strong>{x.employee?.name || "Nhân viên"}</strong></td><td>{x.date || `Lặp theo thứ ${x.dayOfWeek}`}</td><td>{x.startTime} – {x.endTime}</td><td><span className="status confirmed">Đang áp dụng</span></td><td><button className="danger" type="button" onClick={() => remove(x._id, "shift")}>Xóa ca</button></td></tr>)}
+        <div className="tablewrap"><table><thead><tr><th>Nhân viên</th><th>Date</th><th>Khung giờ</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+          {schedules.map(x => <tr key={x._id}><td><strong>{x.employee?.name || "Nhân viên"}</strong></td><td>{x.date || `Lặp theo thứ ${x.dayOfWeek}`}</td><td>{x.startTime} – {x.endTime}</td><td><span className="status confirmed">Đang áp dụng</span></td><td><button className="danger" type="button" onClick={() => remove(x._id, "shift")}>Delete ca</button></td></tr>)}
           {!schedules.length && <tr><td colSpan="5">Chưa có ca làm nào.</td></tr>}
         </tbody></table></div>
       </section>
 
       <section className="staff-schedule-list">
         <div className="section-title"><div><h2>Lịch nghỉ nhân viên</h2><p className="hint">Có thể hủy lịch nghỉ nếu nhân viên thay đổi kế hoạch.</p></div></div>
-        <div className="tablewrap"><table><thead><tr><th>Nhân viên</th><th>Ngày nghỉ</th><th>Lý do</th><th>Ghi chú</th><th>Thao tác</th></tr></thead><tbody>
-          {leaves.map(x => <tr key={x._id}><td><strong>{x.employee?.name || "Nhân viên"}</strong></td><td>{x.date}</td><td>{x.reason || "Nghỉ theo lịch"}</td><td>{x.note || "—"}</td><td><button className="danger" type="button" onClick={() => remove(x._id, "leave")}>Hủy lịch nghỉ</button></td></tr>)}
+        <div className="tablewrap"><table><thead><tr><th>Nhân viên</th><th>Date nghỉ</th><th>Lý do</th><th>Ghi chú</th><th>Actions</th></tr></thead><tbody>
+          {leaves.map(x => <tr key={x._id}><td><strong>{x.employee?.name || "Nhân viên"}</strong></td><td>{x.date}</td><td>{x.reason || "Nghỉ theo lịch"}</td><td>{x.note || "—"}</td><td><button className="danger" type="button" onClick={() => remove(x._id, "leave")}>Cancel lịch nghỉ</button></td></tr>)}
           {!leaves.length && <tr><td colSpan="5">Chưa có lịch nghỉ nào.</td></tr>}
         </tbody></table></div>
       </section>

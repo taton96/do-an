@@ -2,18 +2,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../../api";
 
 const STATUS_LABELS = {
-    pending: "Chờ xác nhận",
-    confirmed: "Đã xác nhận",
-    completed: "Hoàn thành",
-    cancelled: "Đã hủy",
+    pending: "Pending",
+    confirmed: "Confirmed",
+    completed: "Completed",
+    cancelled: "Cancelled",
 };
 
 const FILTER_OPTIONS = [
     { value: "all", label: "Tất cả" },
-    { value: "pending", label: "Chờ xác nhận" },
-    { value: "confirmed", label: "Đã xác nhận" },
-    { value: "completed", label: "Hoàn thành" },
-    { value: "cancelled", label: "Đã hủy" },
+    { value: "pending", label: "Pending" },
+    { value: "confirmed", label: "Confirmed" },
+    { value: "completed", label: "Completed" },
+    { value: "cancelled", label: "Cancelled" },
 ];
 
 const formatMoney = (value) =>
@@ -78,7 +78,7 @@ export default function Bookings() {
         } catch (error) {
             setMessage(
                 error.response?.data?.message ||
-                    "Không thể tải dữ liệu lịch hẹn."
+                    "Unable to load dữ liệu lịch hẹn."
             );
         } finally {
             setLoading(false);
@@ -126,7 +126,7 @@ export default function Bookings() {
     // Phân công nhân viên
     const handleAssignEmployee = async (bookingId, employeeId) => {
         if (!employeeId) {
-            setMessage("Vui lòng chọn nhân viên cần phân công.");
+            setMessage("Please select a staff member to assign.");
             return;
         }
 
@@ -138,11 +138,11 @@ export default function Bookings() {
             });
 
             await loadData();
-            setMessage("Phân công nhân viên thành công.");
+            setMessage("Staff assigned successfully.");
         } catch (error) {
             setMessage(
                 error.response?.data?.message ||
-                    "Không thể phân công nhân viên."
+                    "Unable to assign staff."
             );
         } finally {
             setProcessingId("");
@@ -161,7 +161,7 @@ export default function Bookings() {
 
         if (newStatus === "cancelled") {
             const reason = window.prompt(
-                "Nhập lý do hủy đơn (có thể để trống):",
+                "Enter a cancellation reason (optional):",
                 ""
             );
 
@@ -179,7 +179,7 @@ export default function Bookings() {
         };
 
         const confirmed = window.confirm(
-            `Bạn có chắc chắn muốn ${actionLabels[newStatus]} đơn này?`
+            `Are you sure you want to ${actionLabels[newStatus]} this order?`
         );
 
         if (!confirmed) return;
@@ -196,13 +196,13 @@ export default function Bookings() {
 
             setMessage(
                 newStatus === "cancelled"
-                    ? "Đã hủy đơn thành công."
-                    : "Cập nhật trạng thái đơn thành công."
+                    ? "Cancelled đơn thành công."
+                    : "Order status updated successfully."
             );
         } catch (error) {
             setMessage(
                 error.response?.data?.message ||
-                    "Không thể cập nhật trạng thái đơn."
+                    "Unable to update order status."
             );
         } finally {
             setProcessingId("");
@@ -232,7 +232,7 @@ export default function Bookings() {
                     onClick={() => loadData(true)}
                     disabled={loading}
                 >
-                    ↻ {loading ? "Đang tải..." : "Làm mới"}
+                    ↻ {loading ? "Loading..." : "Refresh"}
                 </button>
             </div>
 
@@ -262,22 +262,22 @@ export default function Bookings() {
                 </div>
 
                 <div className="booking-stat">
-                    <span>Chờ xác nhận</span>
+                    <span>Pending</span>
                     <strong>{counts.pending}</strong>
                 </div>
 
                 <div className="booking-stat">
-                    <span>Đã xác nhận</span>
+                    <span>Confirmed</span>
                     <strong>{counts.confirmed}</strong>
                 </div>
 
                 <div className="booking-stat">
-                    <span>Hoàn thành</span>
+                    <span>Completed</span>
                     <strong>{counts.completed}</strong>
                 </div>
 
                 <div className="booking-stat">
-                    <span>Đã hủy</span>
+                    <span>Cancelled</span>
                     <strong>{counts.cancelled}</strong>
                 </div>
             </div>
@@ -304,13 +304,13 @@ export default function Bookings() {
                 <table>
                     <thead>
                         <tr>
-                            <th>Khách hàng</th>
+                            <th>Customer</th>
                             <th>Dịch vụ</th>
-                            <th>Ngày / giờ</th>
+                            <th>Date / giờ</th>
                             <th>Nhân viên</th>
-                            <th>Giá trị</th>
-                            <th>Trạng thái</th>
-                            <th>Thao tác</th>
+                            <th>Price trị</th>
+                            <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
 
@@ -318,7 +318,7 @@ export default function Bookings() {
                         {loading && bookings.length === 0 ? (
                             <tr>
                                 <td colSpan="7" className="table-empty">
-                                    Đang tải dữ liệu...
+                                    Loading data...
                                 </td>
                             </tr>
                         ) : filteredBookings.length > 0 ? (
@@ -334,7 +334,7 @@ export default function Bookings() {
                                             <strong>
                                                 {booking.customer?.name ||
                                                     booking.customerName ||
-                                                    "Khách hàng"}
+                                                    "Customer"}
                                             </strong>
 
                                             <br />
@@ -372,7 +372,7 @@ export default function Bookings() {
                                             )}
                                         </td>
 
-                                        {/* Thời gian */}
+                                        {/* Duration */}
                                         <td>
                                             <strong>
                                                 {booking.date || "—"}
@@ -421,7 +421,7 @@ export default function Bookings() {
                                             </select>
                                         </td>
 
-                                        {/* Tổng tiền */}
+                                        {/* Total */}
                                         <td>
                                             <strong className="booking-total">
                                                 {formatMoney(
@@ -430,10 +430,10 @@ export default function Bookings() {
                                             </strong>
                                         </td>
 
-                                        {/* Trạng thái */}
+                                        {/* Status */}
                                         <td>
                                             <select
-                                                aria-label="Trạng thái đơn"
+                                                aria-label="Status đơn"
                                                 className={`status-select status-${booking.status}`}
                                                 value={booking.status}
                                                 onChange={(event) =>
@@ -466,7 +466,7 @@ export default function Bookings() {
                                             )}
                                         </td>
 
-                                        {/* Thao tác */}
+                                        {/* Actions */}
                                         <td>
                                             {booking.status !== "cancelled" &&
                                             booking.status !== "completed" ? (
@@ -481,7 +481,7 @@ export default function Bookings() {
                                                         )
                                                     }
                                                 >
-                                                    Hủy đơn
+                                                    Cancel đơn
                                                 </button>
                                             ) : booking.status ===
                                               "cancelled" ? (

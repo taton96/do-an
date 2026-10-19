@@ -105,7 +105,7 @@ export default function Booking() {
         if (!mounted) return;
         setServices(initialServices.map(normalizeService).filter(s => s.active));
         setStaff([]);
-        setMessage("Không thể tải dữ liệu từ máy chủ. Đang dùng dữ liệu dịch vụ mẫu.");
+        setMessage("Unable to load dữ liệu từ máy chủ. Đang dùng dữ liệu dịch vụ mẫu.");
       } finally {
         if (mounted) setLoadingData(false);
       }
@@ -151,7 +151,7 @@ export default function Booking() {
       .then(r => setSlots(Array.isArray(r.data) ? r.data : []))
       .catch(err => {
         setSlots([]);
-        setMessage(err.response?.data?.message || "Không thể tải khung giờ.");
+        setMessage(err.response?.data?.message || "Unable to load khung giờ.");
       });
   }, [selectedService, form.staffId, form.date]);
 
@@ -309,7 +309,7 @@ export default function Booking() {
       {message && <div className="error booking-message">{message}</div>}
 
       <section className="booking-wizard-card">
-        {loadingData ? <div className="loading">Đang tải dữ liệu...</div> : (
+        {loadingData ? <div className="loading">Loading data...</div> : (
           <>
             {step === 0 && (
               <div className="wizard-section category-service-step">
@@ -348,7 +348,7 @@ export default function Booking() {
               <div className="wizard-section narrow-wizard">
                 <h2>3. Thông tin người đặt</h2>
                 <p className="wizard-help">Nhập số điện thoại để cửa hàng có thể liên hệ xác nhận lịch đặt.</p>
-                <label className="big-input-label">Số điện thoại <span className="required-mark">*</span>
+                <label className="big-input-label">Phone Number <span className="required-mark">*</span>
                   <input type="tel" name="phone" value={form.phone} onChange={change} placeholder="Ví dụ: 0901234567" inputMode="tel" autoComplete="tel" required />
                 </label>
                 
@@ -386,7 +386,7 @@ export default function Booking() {
             {step === 1 && (
               <div className="wizard-section">
                 <h2>Chọn nhân viên</h2>
-                <p className="wizard-help">Chọn nhân viên phục vụ cho {selectedService?.name}.</p>
+                <p className="wizard-help">Chọn nhân viên phục vụ cho {selectedService?.name}. Nhân viên đã có lịch trùng thời gian sẽ không có khung giờ khả dụng.</p>
                 <div className="staff-choice-grid">
                   {serviceStaff.length ? serviceStaff.map(employee => (
                     <button type="button" className={`staff-choice ${form.staffId === employee._id ? "selected" : ""}`} key={employee._id} onClick={() => setForm(current => ({ ...current, staffId: employee._id, time: "" }))}>
@@ -405,10 +405,10 @@ export default function Booking() {
                 <h2>Chọn ngày và giờ</h2>
                 <p className="wizard-help">Chọn ngày và một khung giờ còn trống.</p>
                 <div className="date-time-grid">
-                  <label>Ngày
+                  <label>Date
                     <input type="date" name="date" min={new Date().toISOString().slice(0, 10)} value={form.date} onChange={change} />
                   </label>
-                  <label>Giờ
+                  <label>Time
                     <select name="time" value={form.time} onChange={change}>
                       <option value="">-- Chọn giờ trống --</option>
                       {slots.map(time => <option value={time} key={time}>{time}</option>)}
@@ -416,7 +416,7 @@ export default function Booking() {
                   </label>
                 </div>
                 {!form.staffId && <div className="wizard-note">Hãy quay lại bước chọn nhân viên trước.</div>}
-                {form.staffId && form.date && !slots.length && <div className="wizard-note">Không có khung giờ trống trong ngày này.</div>}
+                {form.staffId && form.date && !slots.length && <div className="wizard-note">Nhân viên này không còn khung giờ phù hợp trong ngày đã chọn. Hãy chọn ngày khác hoặc quay lại chọn nhân viên khác.</div>}
               </div>
             )}
 
@@ -449,8 +449,8 @@ export default function Booking() {
                 {accountCreated && temporaryPassword && (
                   <div className="account-created-note">
                     <strong>✓ Tài khoản đã được tạo tự động</strong>
-                    <span>Số điện thoại đăng nhập: <b>{accountInfo?.phone || form.phone}</b></span>
-                    <span>Mật khẩu tạm thời: <b>{temporaryPassword}</b></span>
+                    <span>Phone Number đăng nhập: <b>{accountInfo?.phone || form.phone}</b></span>
+                    <span>Password tạm thời: <b>{temporaryPassword}</b></span>
                     <small>Bạn có thể dùng số điện thoại và mật khẩu này để đăng nhập lại. Lịch đặt sẽ tự động thuộc tài khoản của bạn.</small>
                   </div>
                 )}
@@ -458,10 +458,10 @@ export default function Booking() {
                   <div><span>Họ tên</span><b>{form.name}</b></div>
                   <div><span>Dịch vụ</span><b>{selectedService?.name}</b></div>
                   <div><span>Nhân viên</span><b>{staff.find(e => String(e._id) === String(form.staffId))?.name || "-"}</b></div>
-                  <div><span>Ngày / giờ</span><b>{form.date} · {form.time}</b></div>
-                  <div><span>Số điện thoại</span><b>{form.phone}</b></div>
+                  <div><span>Date / giờ</span><b>{form.date} · {form.time}</b></div>
+                  <div><span>Phone Number</span><b>{form.phone}</b></div>
                   <div><span>Thanh toán</span><b>{paymentMethod === "cash" ? "Tiền mặt tại quầy" : "Quét mã QR"}</b></div>
-                  <div><span>Tổng tiền</span><b>{totalPrice.toLocaleString("vi-VN")}đ</b></div>
+                  <div><span>Total</span><b>{totalPrice.toLocaleString("vi-VN")}đ</b></div>
                 </div>
                 <div className="confirm-actions">
                   <button className="btn" onClick={() => navigate("/")}>Về trang chủ</button>

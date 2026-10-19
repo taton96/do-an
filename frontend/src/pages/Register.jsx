@@ -34,7 +34,7 @@ export default function Register() {
       // Gọi hàm đăng ký
       await register(form);
 
-      // Đăng ký thành công → về trang chủ
+      // Sign Up thành công → về trang chủ
       navigate("/");
 
     } catch (error) {
@@ -52,7 +52,7 @@ export default function Register() {
 
         {/* Tiêu đề */}
         <h1>
-          Đăng ký
+          Sign Up
         </h1>
 
 
@@ -103,9 +103,9 @@ export default function Register() {
           </label>
 
 
-          {/* Mật khẩu */}
+          {/* Password */}
           <label>
-            Mật khẩu
+            Password
 
             <input
               type="password"

@@ -28,10 +28,10 @@ const getAppointmentTotal = (appointment) => {
 
 const getStatusLabel = (status) => {
   const statuses = {
-    pending: "Chờ xác nhận",
-    confirmed: "Đã xác nhận",
-    completed: "Hoàn thành",
-    cancelled: "Đã hủy",
+    pending: "Pending",
+    confirmed: "Confirmed",
+    completed: "Completed",
+    cancelled: "Cancelled",
   };
 
   return statuses[status] || status || "Không xác định";
@@ -57,7 +57,7 @@ export default function Customers() {
     } catch (error) {
       setMessage(
         error.response?.data?.message ||
-          "Không thể tải danh sách khách hàng."
+          "Unable to load danh sách khách hàng."
       );
     } finally {
       setLoading(false);
@@ -68,7 +68,7 @@ export default function Customers() {
     loadCustomers();
   }, [loadCustomers]);
 
-  // Tìm kiếm theo tên, email hoặc số điện thoại
+  // Search theo tên, email hoặc số điện thoại
   const filteredCustomers = useMemo(() => {
     const keyword = query.trim().toLowerCase();
 
@@ -87,7 +87,7 @@ export default function Customers() {
     );
   }, [list, query]);
 
-  // Xem chi tiết khách hàng
+  // View Details khách hàng
   const showDetail = async (customerId) => {
     setDetailLoading(true);
     setMessage("");
@@ -98,7 +98,7 @@ export default function Customers() {
     } catch (error) {
       setMessage(
         error.response?.data?.message ||
-          "Không thể tải thông tin doanh số khách hàng."
+          "Unable to load thông tin doanh số khách hàng."
       );
     } finally {
       setDetailLoading(false);
@@ -115,7 +115,7 @@ export default function Customers() {
       <div className="page-title-row">
         <div>
           <span className="section-kicker">CRM</span>
-          <h1>Quản lý khách hàng</h1>
+          <h1>Customer Management</h1>
           <p className="muted">
             Theo dõi thông tin, lịch đặt, doanh thu và lịch sử
             sử dụng dịch vụ của khách hàng.
@@ -128,7 +128,7 @@ export default function Customers() {
           onClick={loadCustomers}
           disabled={loading}
         >
-          {loading ? "Đang tải..." : "↻ Làm mới"}
+          {loading ? "Loading..." : "↻ Refresh"}
         </button>
       </div>
 
@@ -139,14 +139,14 @@ export default function Customers() {
         </div>
       )}
 
-      {/* Tìm kiếm */}
+      {/* Search */}
       <div className="customer-toolbar">
         <input
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Tìm theo tên, email hoặc số điện thoại..."
-          aria-label="Tìm kiếm khách hàng"
+          placeholder="Search by name, email, or phone..."
+          aria-label="Search khách hàng"
         />
 
         <strong>
@@ -159,13 +159,13 @@ export default function Customers() {
         <table>
           <thead>
             <tr>
-              <th>Khách hàng</th>
-              <th>Thông tin liên hệ</th>
+              <th>Customer</th>
+              <th>Contact Information</th>
               <th>Lịch đặt</th>
-              <th>Doanh thu hoàn thành</th>
-              <th>Đơn đã hủy</th>
-              <th>Đánh giá</th>
-              <th>Thao tác</th>
+              <th>Completed Revenue</th>
+              <th>Cancelled Orders</th>
+              <th>Reviews</th>
+              <th>Actions</th>
             </tr>
           </thead>
 
@@ -181,7 +181,7 @@ export default function Customers() {
                 <tr key={customer._id}>
                   <td>
                     <strong>
-                      {customer.name || "Khách hàng"}
+                      {customer.name || "Customer"}
                     </strong>
                   </td>
 
@@ -207,7 +207,7 @@ export default function Customers() {
                       onClick={() => showDetail(customer._id)}
                       disabled={detailLoading}
                     >
-                      Xem chi tiết
+                      View Details
                     </button>
                   </td>
                 </tr>
@@ -216,8 +216,8 @@ export default function Customers() {
               <tr>
                 <td colSpan={7} className="table-empty">
                   {query
-                    ? "Không tìm thấy khách hàng phù hợp."
-                    : "Chưa có khách hàng nào."}
+                    ? "No results found khách hàng phù hợp."
+                    : "No customers found."}
                 </td>
               </tr>
             )}
@@ -225,7 +225,7 @@ export default function Customers() {
         </table>
       </div>
 
-      {/* Chi tiết khách hàng */}
+      {/* Details khách hàng */}
       {detail && (
         <div
           className="detail-overlay"
@@ -245,7 +245,7 @@ export default function Customers() {
                 </span>
 
                 <h2 id="customer-detail-title">
-                  {detail.customer?.name || "Khách hàng"}
+                  {detail.customer?.name || "Customer"}
                 </h2>
 
                 <p className="muted">
@@ -271,14 +271,14 @@ export default function Customers() {
                 {/* Thống kê */}
                 <div className="analytics-grid compact">
                   <div className="summary-card">
-                    <span>Doanh thu hoàn thành</span>
+                    <span>Completed Revenue</span>
                     <strong>
                       {money(detail.stats?.revenue)}
                     </strong>
                   </div>
 
                   <div className="summary-card">
-                    <span>Giá trị đơn chưa hủy</span>
+                    <span>Price trị đơn chưa hủy</span>
                     <strong>
                       {money(detail.stats?.bookedValue)}
                     </strong>
@@ -292,7 +292,7 @@ export default function Customers() {
                   </div>
 
                   <div className="summary-card">
-                    <span>Đơn đã hủy</span>
+                    <span>Cancelled Orders</span>
                     <strong>
                       {detail.stats?.cancelledCount ?? 0}
                     </strong>
@@ -306,11 +306,11 @@ export default function Customers() {
                   <table>
                     <thead>
                       <tr>
-                        <th>Ngày giờ</th>
+                        <th>Date giờ</th>
                         <th>Dịch vụ</th>
                         <th>Nhân viên</th>
-                        <th>Tổng tiền</th>
-                        <th>Trạng thái</th>
+                        <th>Total</th>
+                        <th>Status</th>
                         <th>Lý do hủy</th>
                       </tr>
                     </thead>
@@ -365,7 +365,7 @@ export default function Customers() {
                       ) : (
                         <tr>
                           <td colSpan={6} className="table-empty">
-                            Khách hàng chưa có lịch đặt nào.
+                            Customer chưa có lịch đặt nào.
                           </td>
                         </tr>
                       )}
@@ -378,7 +378,7 @@ export default function Customers() {
         </div>
       )}
 
-      {/* Trạng thái tải chi tiết */}
+      {/* Status tải chi tiết */}
       {detailLoading && (
         <div className="loading-toast">
           Đang tải thông tin khách hàng...

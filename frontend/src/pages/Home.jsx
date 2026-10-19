@@ -54,7 +54,7 @@ export default function Home() {
           </div>
 
           <form className="quick-booking-form" onSubmit={handleQuickBooking}>
-            <label htmlFor="quick-phone" className="sr-only">Số điện thoại</label>
+            <label htmlFor="quick-phone" className="sr-only">Phone Number</label>
             <input
               id="quick-phone"
               type="tel"
@@ -81,7 +81,7 @@ export default function Home() {
               <p>Phản hồi của bạn giúp chúng tôi cải thiện dịch vụ tốt hơn.</p>
             </div>
           </div>
-          <div className="rating-stars" role="radiogroup" aria-label="Đánh giá chất lượng phục vụ">
+          <div className="rating-stars" role="radiogroup" aria-label="Reviews chất lượng phục vụ">
             {[1, 2, 3, 4, 5].map((value) => (
               <button
                 key={value}

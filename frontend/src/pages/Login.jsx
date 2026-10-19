@@ -84,7 +84,7 @@ export default function Login() {
 
 
           <label>
-            Mật khẩu
+            Password
 
             <input
               type="password"

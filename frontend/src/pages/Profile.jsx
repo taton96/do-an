@@ -18,7 +18,7 @@ export default function Profile() {
 
   const roleLabel =
     user?.role === "customer"
-      ? "Khách hàng"
+      ? "Customer"
       : user?.role === "employee" || user?.role === "staff"
       ? "Nhân viên"
       : user?.role === "admin"
@@ -54,12 +54,12 @@ export default function Profile() {
     }
 
     if (newPassword.length < 6) {
-      setError("Mật khẩu mới phải có ít nhất 6 ký tự.");
+      setError("Password mới phải có ít nhất 6 ký tự.");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError("Mật khẩu xác nhận không khớp.");
+      setError("Password xác nhận không khớp.");
       return;
     }
 
@@ -119,7 +119,7 @@ export default function Profile() {
             <div className="account-info-item">
               <span className="account-info-icon">👤</span>
               <div>
-                <small>Họ và tên</small>
+                <small>Full Name</small>
                 <strong>{user?.name || "Chưa cập nhật"}</strong>
               </div>
             </div>
@@ -143,7 +143,7 @@ export default function Profile() {
             <div className="account-info-item">
               <span className="account-info-icon">✓</span>
               <div>
-                <small>Trạng thái</small>
+                <small>Status</small>
                 <strong className="account-active">Đang hoạt động</strong>
               </div>
             </div>
@@ -155,7 +155,7 @@ export default function Profile() {
           <div className="profile-panel-head">
             <div className="profile-panel-icon">⚙️</div>
             <div>
-              <h2>Chỉnh sửa tài khoản</h2>
+              <h2>Edit tài khoản</h2>
               <p>Đổi tên khách hàng và mật khẩu</p>
             </div>
           </div>
@@ -183,7 +183,7 @@ export default function Profile() {
             </label>
 
             <button className="profile-primary-btn" type="submit">
-              Lưu tên khách hàng
+              Save tên khách hàng
             </button>
           </form>
 
@@ -199,7 +199,7 @@ export default function Profile() {
             </div>
 
             <label>
-              Mật khẩu hiện tại
+              Password hiện tại
               <input
                 type="password"
                 value={currentPassword}
@@ -209,7 +209,7 @@ export default function Profile() {
             </label>
 
             <label>
-              Mật khẩu mới
+              Password mới
               <input
                 type="password"
                 value={newPassword}
@@ -219,7 +219,7 @@ export default function Profile() {
             </label>
 
             <label>
-              Xác nhận mật khẩu mới
+              Confirm Password mới
               <input
                 type="password"
                 value={confirmPassword}

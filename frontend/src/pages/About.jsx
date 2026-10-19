@@ -45,7 +45,7 @@ export default function About() {
             <div className="about-contents-cta">
               <span>✦</span>
               <p>Sẵn sàng cho trải nghiệm mới?</p>
-              <Link to="/booking">Đặt lịch ngay →</Link>
+              <Link to="/booking">Book Now →</Link>
             </div>
           </aside>
 
@@ -73,7 +73,7 @@ export default function About() {
               <div className="about-value-list">
                 <div className="about-value-item"><span className="about-value-icon">↗</span><div><h3>Thuận tiện</h3><p>Tìm hiểu dịch vụ và gửi yêu cầu đặt lịch qua vài thao tác đơn giản.</p></div></div>
                 <div className="about-value-item"><span className="about-value-icon">◇</span><div><h3>Rõ ràng</h3><p>Thông tin dịch vụ, giá tham khảo và thời lượng được trình bày dễ theo dõi.</p></div></div>
-                <div className="about-value-item"><span className="about-value-icon">♡</span><div><h3>Chủ động</h3><p>Khách hàng có thể lựa chọn nhân viên và khung giờ phù hợp với kế hoạch cá nhân.</p></div></div>
+                <div className="about-value-item"><span className="about-value-icon">♡</span><div><h3>Chủ động</h3><p>Customer có thể lựa chọn nhân viên và khung giờ phù hợp với kế hoạch cá nhân.</p></div></div>
                 <div className="about-value-item"><span className="about-value-icon">✳</span><div><h3>Kết nối</h3><p>Hỗ trợ khách hàng, nhân viên và người quản lý phối hợp thuận tiện hơn.</p></div></div>
               </div>
             </section>
@@ -85,7 +85,7 @@ export default function About() {
               <div className="about-steps">
                 <div><span>1</span><h3>Chọn dịch vụ</h3><p>Xem mô tả và lựa chọn dịch vụ phù hợp với nhu cầu.</p></div>
                 <div><span>2</span><h3>Chọn lịch hẹn</h3><p>Lựa chọn nhân viên, ngày và khung giờ còn trống.</p></div>
-                <div><span>3</span><h3>Thông tin liên hệ</h3><p>Điền thông tin cần thiết để cơ sở dịch vụ liên hệ.</p></div>
+                <div><span>3</span><h3>Contact Information</h3><p>Điền thông tin cần thiết để cơ sở dịch vụ liên hệ.</p></div>
                 <div><span>4</span><h3>Xác nhận</h3><p>Kiểm tra lại thông tin và hoàn tất các bước đặt lịch.</p></div>
               </div>
               <figure className="about-article-figure about-article-figure-short">

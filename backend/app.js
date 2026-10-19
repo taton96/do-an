@@ -24,7 +24,17 @@ app.get("/api/dashboard",require("./middleware/auth").auth,require("./middleware
  const month=new Date().toISOString().slice(0,7);
  const monthly=completed.filter(a=>String(a.date||"").startsWith(month)).reduce((sum,a)=>sum+amountOf(a),0);
  const rating=await Review.aggregate([{ $match:{visible:true} },{ $group:{_id:null,avg:{$avg:"$rating"},count:{$sum:1}}}]);
- res.json({services:await Service.countDocuments(),users:await User.countDocuments({role:"customer"}),appointments:appointments.length,pending:appointments.filter(a=>a.status==="pending").length,completed:completed.length,revenue,confirmedValue,monthlyRevenue:monthly,averageRating:rating[0]?.avg||0,reviewCount:rating[0]?.count||0});
+ const statusCounts={pending:0,confirmed:0,completed:0,cancelled:0};
+ appointments.forEach(a=>{if(Object.prototype.hasOwnProperty.call(statusCounts,a.status))statusCounts[a.status]++;});
+ const monthlyStats=[];
+ const now=new Date();
+ for(let offset=5;offset>=0;offset--){
+  const d=new Date(now.getFullYear(),now.getMonth()-offset,1);
+  const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  const monthAppointments=appointments.filter(a=>String(a.date||"").startsWith(key));
+  monthlyStats.push({month:key,label:d.toLocaleDateString("en-US",{month:"short"}),orders:monthAppointments.length,revenue:monthAppointments.filter(a=>a.status==="completed").reduce((sum,a)=>sum+amountOf(a),0)});
+ }
+ res.json({services:await Service.countDocuments(),users:await User.countDocuments({role:"customer"}),appointments:appointments.length,pending:statusCounts.pending,completed:completed.length,revenue,confirmedValue,monthlyRevenue:monthly,monthlyStats,statusCounts,averageRating:rating[0]?.avg||0,reviewCount:rating[0]?.count||0});
 });
 
 async function seed(){

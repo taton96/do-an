@@ -116,14 +116,46 @@ router.post("/", optionalAuth, async (req, res) => {
       }
     }
 
-    const existed = await Appointment.findOne({
+    // Kiểm tra chồng lấn theo toàn bộ thời lượng dịch vụ, không chỉ trùng giờ bắt đầu.
+    // Ví dụ: lịch 09:00 kéo dài 60 phút thì nhân viên không thể nhận lịch 09:30.
+    const toMinutes = (value) => {
+      const [hours, minutes] = String(value || "").split(":").map(Number);
+      return hours * 60 + minutes;
+    };
+    const requestedStart = toMinutes(time);
+    const requestedDuration = services.reduce(
+      (sum, item) => sum + Number(item.duration || 0),
+      0
+    );
+    const requestedEnd = requestedStart + requestedDuration;
+
+    const existingAppointments = await Appointment.find({
       employee,
       date,
-      time,
       status: { $in: ["pending", "confirmed"] }
+    }).populate("services", "duration").populate("service", "duration");
+
+    const conflict = existingAppointments.find((existing) => {
+      const existingServices = existing.services?.length
+        ? existing.services
+        : existing.service
+          ? [existing.service]
+          : [];
+      const existingDuration = existingServices.reduce(
+        (sum, item) => sum + Number(item.duration || 0),
+        0
+      );
+      const existingStart = toMinutes(existing.time);
+      const existingEnd = existingStart + existingDuration;
+
+      return requestedStart < existingEnd && requestedEnd > existingStart;
     });
 
-    if (existed) return res.status(400).json({ message: "Khung giờ này đã được đặt. Vui lòng chọn giờ khác." });
+    if (conflict) {
+      return res.status(409).json({
+        message: "Nhân viên này đã có lịch trong khoảng thời gian bạn chọn. Vui lòng chọn khung giờ khác hoặc chọn nhân viên khác."
+      });
+    }
 
     // Đặt lịch cũng đồng thời tạo/liên kết tài khoản khách hàng theo số điện thoại.
     // Nếu khách đã đăng nhập bằng tài khoản customer thì dùng chính tài khoản đó.
